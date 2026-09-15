@@ -1,0 +1,65 @@
+/* 场地卡片 */
+.venueCard {
+  background: var(--color-card);
+  border-radius: 0;
+  box-shadow: var(--shadow-card);
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.venueCard:active {
+  background: var(--color-card-hover);
+  transform: scale(0.98);
+}
+
+.venueCard.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.venueCard.disabled:active {
+  transform: none;
+  background: var(--color-card);
+}
+
+/* 场地信息 */
+.venueInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.venueRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.venueName {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.venuePrice {
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.priceUnit {
+  font-size: var(--font-xs);
+  font-weight: 400;
+  color: var(--color-text-secondary);
+  margin-left: 1px;
+}
+
+.venueDesc {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+}

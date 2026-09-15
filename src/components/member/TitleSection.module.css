@@ -1,0 +1,59 @@
+/* 标题区域 */
+.titleSection {
+  flex-shrink: 0;
+  padding: var(--space-md);
+  padding-bottom: var(--space-sm);
+}
+
+.pageTitle {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-xs) 0;
+}
+
+/* 副标题行 + 气泡 */
+.subtitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  position: relative;
+}
+
+.pageSubtitle {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.tooltipTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+  color: white;
+  cursor: pointer;
+}
+
+.tooltipIcon {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tooltip {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: var(--space-xs);
+  padding: var(--space-sm);
+  background: var(--color-text);
+  color: white;
+  font-size: var(--font-xs);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: var(--shadow-card);
+}

@@ -1,0 +1,200 @@
+// This is your Prisma schema file
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 会员表
+model Member {
+  id           Int       @id @default(autoincrement())
+  name         String    @map("name") @default("")
+  phone        String    @unique @map("phone") @default("")
+  wechatOpenid String?   @map("wechat_openid")
+  balance      Float     @map("balance") @default(0)
+  createdAt    DateTime  @map("created_at") @default(now())
+  updatedAt    DateTime  @map("updated_at") @default(now())
+
+  orders       Order[]
+
+  @@map("members")
+}
+
+// 场地表
+model Venue {
+  id            Int       @id @default(autoincrement())
+  name          String    @map("name") @default("")
+  pricePerHour  Float     @map("price_per_hour") @default(0)
+  description   String?   @map("description")
+  isActive      Boolean   @map("is_active") @default(true)
+  createdAt     DateTime  @map("created_at") @default(now())
+  updatedAt     DateTime  @map("updated_at") @default(now())
+
+  orders        Order[]
+
+  @@map("venues")
+}
+
+// 设备表
+model Equipment {
+  id            Int       @id @default(autoincrement())
+  name          String    @map("name") @default("")
+  pricePerUse   Float     @map("price_per_use") @default(0)
+  description   String?   @map("description")
+  isActive      Boolean   @map("is_active") @default(true)
+  createdAt     DateTime  @map("created_at") @default(now())
+  updatedAt     DateTime  @map("updated_at") @default(now())
+
+  orderEquipments OrderEquipment[]
+
+  @@map("equipments")
+}
+
+// 订单表
+model Order {
+  id                Int       @id @default(autoincrement())
+  orderNo           String    @unique @map("order_no") @default("")
+  memberId          Int       @map("member_id")
+  venueId           Int       @map("venue_id")
+  status            String    @map("status") @default("pending_entry")
+  entryTime         DateTime? @map("entry_time")
+  exitTime          DateTime? @map("exit_time")
+  durationMinutes   Int       @map("duration_minutes") @default(0)
+  baseAmount        Float     @map("base_amount") @default(0)
+  extraAmount       Float     @map("extra_amount") @default(0)
+  finalAmount       Float     @map("final_amount") @default(0)
+  leaderName        String?   @map("leader_name")
+  leaderPhone       String?   @map("leader_phone")
+  remark            String?   @map("remark")
+  partialExitCount  Int       @map("partial_exit_count") @default(0)
+  rejectReason      String?   @map("reject_reason")
+  createdAt         DateTime  @map("created_at") @default(now())
+  updatedAt         DateTime  @map("updated_at") @default(now())
+
+  member            Member    @relation(fields: [memberId], references: [id])
+  venue             Venue     @relation(fields: [venueId], references: [id])
+  orderEquipments   OrderEquipment[]
+  partialExits      PartialExit[]
+  topUps            TopUp[]
+  operationLogs     OperationLog[]
+  adminApprovals    AdminApproval[]
+
+  @@map("orders")
+}
+
+// 订单设备关联表
+model OrderEquipment {
+  id            Int       @id @default(autoincrement())
+  orderId       Int       @map("order_id")
+  equipmentId   Int       @map("equipment_id")
+  quantity      Int       @map("quantity") @default(1)
+  subtotal      Float     @map("subtotal") @default(0)
+
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  equipment     Equipment @relation(fields: [equipmentId], references: [id])
+
+  @@map("order_equipments")
+}
+
+// 部分人离场记录表
+model PartialExit {
+  id            Int       @id @default(autoincrement())
+  orderId       Int       @map("order_id")
+  personCount   Int       @map("person_count") @default(0)
+  remark        String?   @map("remark")
+  status        String    @map("status") @default("pending")
+  approvedBy    Int?      @map("approved_by")
+  approvedAt    DateTime? @map("approved_at")
+  createdAt     DateTime  @map("created_at") @default(now())
+
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("partial_exits")
+}
+
+// 补差价记录表
+model TopUp {
+  id            Int       @id @default(autoincrement())
+  orderId       Int       @map("order_id")
+  amount        Float     @map("amount") @default(0)
+  status        String    @map("status") @default("pending")
+  approvedBy    Int?      @map("approved_by")
+  approvedAt    DateTime? @map("approved_at")
+  createdAt     DateTime  @map("created_at") @default(now())
+
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("top_ups")
+}
+
+// 管理员表
+model Admin {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique @map("username") @default("")
+  passwordHash  String    @map("password_hash") @default("")
+  realName      String?   @map("real_name")
+  role          String    @map("role") @default("admin")
+  isActive      Boolean   @map("is_active") @default(true)
+  createdAt     DateTime  @map("created_at") @default(now())
+  updatedAt     DateTime  @map("updated_at") @default(now())
+
+  operationLogs OperationLog[]
+  adminApprovals AdminApproval[]
+
+  @@map("admins")
+}
+
+// 操作日志表
+model OperationLog {
+  id            Int       @id @default(autoincrement())
+  orderId       Int?      @map("order_id")
+  action        String    @map("action") @default("")
+  actionName    String?   @map("action_name")
+  operatorType  String    @map("operator_type") @default("member")
+  operatorId    Int?      @map("operator_id")
+  operatorName  String?   @map("operator_name")
+  details       String?   @map("details")
+  ipAddress     String?   @map("ip_address")
+  createdAt     DateTime  @map("created_at") @default(now())
+
+  order         Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  admin         Admin?    @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+
+  @@map("operation_logs")
+}
+
+// 通知表
+model Notification {
+  id            Int       @id @default(autoincrement())
+  targetType    String    @map("target_type") @default("member")
+  targetId      Int       @map("target_id")
+  title         String    @map("title") @default("")
+  content       String    @map("content") @default("")
+  type          String    @map("type") @default("info")
+  isRead        Boolean   @map("is_read") @default(false)
+  createdAt     DateTime  @map("created_at") @default(now())
+
+  @@map("notifications")
+}
+
+// 管理员审核记录表
+model AdminApproval {
+  id            Int       @id @default(autoincrement())
+  orderId       Int       @map("order_id")
+  adminId       Int       @map("admin_id")
+  action        String    @map("action") @default("")
+  beforeAmount  Float?    @map("before_amount")
+  afterAmount   Float?    @map("after_amount")
+  reason        String?   @map("reason")
+  createdAt     DateTime  @map("created_at") @default(now())
+
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  admin         Admin     @relation(fields: [adminId], references: [id])
+
+  @@map("admin_approvals")
+}

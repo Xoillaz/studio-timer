@@ -1,0 +1,120 @@
+/**
+ * Design Tokens - 片场租赁计时管理系统设计系统
+ * 基于 docs/用户体验设计规范.md
+ */
+
+/* ===== 颜色 ===== */
+:root {
+  /* 主色调 */
+  --color-primary: #003399;
+  --color-primary-light: #3366cc;
+  --color-primary-dark: #002266;
+
+  /* 状态色 */
+  --color-success: #52c41a;
+  --color-success-light: #73d13d;
+  --color-success-dark: #389e0d;
+  --color-warning: #faad14;
+  --color-warning-light: #ffc53d;
+  --color-warning-dark: #d48806;
+  --color-danger: #ff4d4f;
+  --color-danger-light: #ff7875;
+  --color-danger-dark: #cf1322;
+
+  /* 文字色 */
+  --color-text: #1f1f1f;
+  --color-text-secondary: #8c8c8c;
+  --color-text-tertiary: #bfbfbf;
+  --color-text-inverse: #ffffff;
+
+  /* 背景色 */
+  --color-bg: #f5f5f5;
+  --color-bg-secondary: #fafafa;
+  --color-card: #ffffff;
+  --color-card-hover: #fafafa;
+
+  /* 边框色 */
+  --color-border: #d9d9d9;
+  --color-border-light: #f0f0f0;
+
+  /* 状态背景色 */
+  --color-bg-entering: #e8f5e9;
+  --color-text-entering: #2e7d32;
+  --color-bg-pending: #fff3e0;
+  --color-text-pending: #ef6c00;
+  --color-bg-completed: #e3f2fd;
+  --color-text-completed: #1565c0;
+  --color-bg-rejected: #ffebee;
+  --color-text-rejected: #c62828;
+}
+
+/* ===== 间距 ===== */
+:root {
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+}
+
+/* ===== 字号 ===== */
+:root {
+  --font-xs: 12px;
+  --font-sm: 14px;
+  --font-md: 16px;
+  --font-lg: 18px;
+  --font-xl: 20px;
+  --font-xxl: 24px;
+  --font-xxxl: 28px;
+  --font-display: 32px;
+}
+
+/* ===== 圆角 ===== */
+:root {
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+}
+
+/* ===== 阴影 ===== */
+:root {
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-dropdown: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-modal: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== 动画 ===== */
+:root {
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.4s ease;
+}
+
+/* ===== 布局 ===== */
+:root {
+  --header-height: 56px;
+  --footer-height: 60px;
+  --content-max-width: 480px;
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ===== 字体 ===== */
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-mono: 'SF Mono', 'Roboto Mono', 'Menlo', monospace;
+}
+
+/* ===== Z-index ===== */
+:root {
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-tooltip: 600;
+  --z-toast: 700;
+}

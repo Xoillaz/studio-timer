@@ -1,0 +1,43 @@
+/* 标题区域 - 主题色背景 + 余额信息 */
+.headerSection {
+  padding: var(--space-xs) var(--space-md);
+  background: var(--color-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+  position: relative;
+  z-index: 10;
+}
+
+.balanceInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.balanceLabel {
+  font-size: var(--font-xs);
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 2px;
+}
+
+.balanceValue {
+  font-size: var(--font-xxl);
+  font-weight: 700;
+  color: white;
+  font-variant-numeric: tabular-nums;
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+}
+
+.rechargeBtn {
+  background: white;
+  color: var(--color-primary);
+  border: none;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--font-sm);
+  font-weight: 500;
+}
+
+.rechargeBtn:hover {
+  background: rgba(255, 255, 255, 0.9);
+}

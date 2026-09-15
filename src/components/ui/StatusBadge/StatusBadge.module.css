@@ -1,0 +1,40 @@
+/* 状态标签组件样式 - 基于 tokens.css */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* 使用中 */
+.entering {
+  background: var(--color-bg-entering);
+  color: var(--color-text-entering);
+}
+
+/* 待审核 */
+.pending {
+  background: var(--color-bg-pending);
+  color: var(--color-text-pending);
+}
+
+/* 已完成 */
+.completed {
+  background: var(--color-bg-completed);
+  color: var(--color-text-completed);
+}
+
+/* 已拒绝 */
+.rejected {
+  background: var(--color-bg-rejected);
+  color: var(--color-text-rejected);
+}
+
+/* 默认 */
+.default {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-secondary);
+}

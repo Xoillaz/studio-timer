@@ -1,0 +1,172 @@
+/* 订单详情页样式 - 基于 tokens.css */
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border-light);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: var(--space-lg);
+}
+
+.emptyText {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-lg);
+}
+
+/* 详情内容 */
+.detailContent {
+  padding: var(--space-md);
+}
+
+/* 信息卡片 */
+.infoCard {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  margin-bottom: var(--space-sm);
+  box-shadow: var(--shadow-card);
+}
+
+.cardTitle {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-xs) 0;
+  font-size: var(--font-sm);
+}
+
+.infoRow .label {
+  color: var(--color-text-secondary);
+}
+
+.infoRow .value {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.totalRow {
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+}
+
+.totalValue {
+  font-size: var(--font-lg);
+  color: var(--color-primary);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.contactInfo {
+  text-align: center;
+  padding: var(--space-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+}
+
+.rejectReason {
+  color: var(--color-danger);
+  font-size: var(--font-sm);
+  margin: 0;
+}
+
+/* 状态内容 - 时间轴 */
+.statusContent {
+  padding: var(--space-md);
+}
+
+.timeline {
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.timelineItem {
+  display: flex;
+  padding-bottom: var(--space-lg);
+  position: relative;
+}
+
+.timelineItem:last-child {
+  padding-bottom: 0;
+}
+
+.timelineDot {
+  flex-shrink: 0;
+  width: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.dot {
+  color: var(--color-border);
+  font-size: 12px;
+}
+
+.dotActive {
+  color: var(--color-primary);
+  font-size: 14px;
+}
+
+.timelineContent {
+  flex: 1;
+  margin-left: var(--space-sm);
+}
+
+.timelineLabel {
+  font-size: var(--font-sm);
+  color: var(--color-text);
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.timelineDetails {
+  display: block;
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  font-weight: normal;
+  margin-top: 2px;
+}
+
+.timelineTime {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+}
+
+.emptyTimeline {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--color-text-secondary);
+}

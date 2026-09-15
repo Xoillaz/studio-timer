@@ -468,17 +468,16 @@ npm run test
 ```
 __tests__/
 ├── m2/
-│   ├── auth.test.ts      # 认证模块测试 (T2-1, T2-2, T2-3, T2-6)
-│   └── member.test.ts   # 会员模块测试 (T2-4, T2-5)
+│   ├── auth.test.ts       # 认证模块测试 (T2-1, T2-2, T2-3, T2-6)
+│   └── member.test.ts    # 会员模块测试 (T2-4, T2-5)
 ├── m3/
-│   ├── session.test.ts   # 会话与计时测试
-│   ├── billing.test.ts  # 计费规则测试
-│   └── order.test.ts    # 订单流程测试
+│   ├── session.test.ts   # SKU选择与会话测试 (T3-1, T3-2, T3-3)
+│   └── timer-exit.test.ts # 计时器与离场测试 (T3-4, T3-5, T3-6, T3-7, T3-8)
 ├── m4/
-│   ├── admin.test.ts    # 管理员功能测试
-│   └── approval.test.ts # 审核流程测试
+│   ├── admin-approval.test.ts # 管理员认证与审核测试 (T4-1~T4-7, T4-10)
+│   └── crud.test.ts      # 资源管理测试 (T4-8, T4-9)
 └── m5/
-    └── audit.test.ts    # 日志审计测试
+    └── audit.test.ts    # 日志审计测试 (T5-1~T5-6)
 ```
 
 ### 9.2 运行测试
@@ -490,12 +489,63 @@ npm run test
 # 运行 M2 模块测试
 npm run test -- __tests__/m2
 
+# 运行 M3 模块测试
+npm run test -- __tests__/m3
+
+# 运行 M4 模块测试
+npm run test -- __tests__/m4
+
+# 运行 M5 模块测试
+npm run test -- __tests__/m5
+
 # 运行特定测试文件
-npm run test -- __tests__/m2/auth.test.ts
+npm run test -- __tests__/m3/session.test.ts
 
 # Vitest UI 模式
 npm run test:ui
+
+# 生成测试覆盖率报告
+npm run test -- --coverage
 ```
+
+### 9.3 M3 模块测试用例映射
+
+| 测试文件 | 测试用例 | 测试内容 |
+|----------|----------|----------|
+| `session.test.ts` | T3-1 | SKU 选择与预计价格计算 |
+| `session.test.ts` | T3-2 | 余额不足时入场拦截 |
+| `session.test.ts` | T3-3 | 入场成功与订单创建 |
+| `timer-exit.test.ts` | T3-4 | 计时器实时更新 |
+| `timer-exit.test.ts` | T3-5 | 预计费用实时计算 |
+| `timer-exit.test.ts` | T3-6 | 申请离场 |
+| `timer-exit.test.ts` | T3-7 | 余额不足引导充值 |
+| `timer-exit.test.ts` | T3-8 | 充值后继续离场流程 |
+
+### 9.4 M4 模块测试用例映射
+
+| 测试文件 | 测试用例 | 测试内容 |
+|----------|----------|----------|
+| `admin-approval.test.ts` | T4-1 | 管理员登录 |
+| `admin-approval.test.ts` | T4-2 | 待审核列表展示 |
+| `admin-approval.test.ts` | T4-3 | 部分人离场审核 - 同意 |
+| `admin-approval.test.ts` | T4-4 | 账单审核 - 调价 |
+| `admin-approval.test.ts` | T4-5 | 扣款与余额更新 |
+| `admin-approval.test.ts` | T4-6 | 手动放行 |
+| `admin-approval.test.ts` | T4-7 | 补差价审核 |
+| `admin-approval.test.ts` | T4-10 | 管理员登出 |
+| `crud.test.ts` | T4-8 | 场地管理 CRUD |
+| `crud.test.ts` | T4-9 | 设备管理 CRUD |
+
+### 9.5 M5 模块测试用例映射
+
+| 测试文件 | 测试用例 | 测试内容 |
+|----------|----------|----------|
+| `audit.test.ts` | T5-1 | 登录日志记录 |
+| `audit.test.ts` | T5-2 | 入场日志记录 |
+| `audit.test.ts` | T5-3 | 离场日志记录 |
+| `audit.test.ts` | T5-4 | 审核日志记录 |
+| `audit.test.ts` | T5-5 | 扣款日志记录 |
+| `audit.test.ts` | T5-6 | 状态流转日志 |
 
 ---
 

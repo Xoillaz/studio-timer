@@ -1,0 +1,83 @@
+/* Toast 提示组件样式 - 基于 tokens.css */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  background: var(--color-card);
+  box-shadow: var(--shadow-dropdown);
+  font-size: var(--font-md);
+  max-width: calc(100vw - 32px);
+  width: calc(100vw - 32px);
+  box-sizing: border-box;
+  animation: toast-in 0.3s ease;
+}
+
+.toast.hide {
+  animation: toast-out 0.3s ease forwards;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.message {
+  color: var(--color-text);
+}
+
+/* ===== 类型 ===== */
+.success .icon {
+  background: var(--color-success);
+  color: white;
+}
+
+.error .icon {
+  background: var(--color-danger);
+  color: white;
+}
+
+.warning .icon {
+  background: var(--color-warning);
+  color: white;
+}
+
+.info .icon {
+  background: var(--color-primary);
+  color: white;
+}

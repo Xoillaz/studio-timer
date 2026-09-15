@@ -1,0 +1,44 @@
+/* 金额展示组件样式 - 基于 tokens.css */
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.label {
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.value {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+/* ===== 尺寸 ===== */
+.small .value {
+  font-size: var(--font-lg);
+}
+
+.medium .value {
+  font-size: var(--font-xxl);
+}
+
+.large .value {
+  font-size: 40px;
+}
+
+/* ===== 变体 ===== */
+.primary {
+  color: var(--color-primary);
+}
+
+.success {
+  color: var(--color-success);
+}
+
+.danger {
+  color: var(--color-danger);
+}
