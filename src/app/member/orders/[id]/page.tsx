@@ -74,12 +74,9 @@ export default function OrderDetailPage() {
               });
             }
             
-            if (data.data.entryTime) {
-              timeline.push({ action: 'confirmed', time: data.data.entryTime, details: '' });
-            }
-            
+            // 结束订单
             if (data.data.exitTime) {
-              timeline.push({ action: 'end_timer', time: data.data.exitTime, details: '' });
+              timeline.push({ action: 'order_completed', time: data.data.exitTime, details: '' });
             }
             
             setOrder({ ...data.data, timeline });

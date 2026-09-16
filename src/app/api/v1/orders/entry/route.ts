@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         orderNo: updatedOrder.orderNo,
         status: updatedOrder.status,
         venueName: updatedOrder.venue.name,
-        entryTime: updatedOrder.entryTime?.toISOString(),
+        entryTime: updatedOrder.entryTime ? new Date(updatedOrder.entryTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : null,
         baseAmount: updatedOrder.baseAmount,
         finalAmount: updatedOrder.finalAmount,
         equipmentTotal,

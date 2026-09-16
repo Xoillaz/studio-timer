@@ -121,10 +121,9 @@ function ActivePageContent() {
           });
         }
 
-        // 部分人离场 - 每一次都独立显示
-
+        // 结束订单
         if (data.data.exitTime) {
-          timeline.push({ action: 'end_timer', time: data.data.exitTime, details: '已离场' });
+          timeline.push({ action: 'order_completed', time: data.data.exitTime, details: '' });
         }
         
         setOrder({ ...data.data, timeline });

@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         pricePerUse: ov.vasService.pricePerUse,
         quantity: ov.quantity,
         subtotal: ov.subtotal,
-        createdAt: ov.createdAt.toISOString(),
+        createdAt: ov.createdAt ? new Date(ov.createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : null,
       })),
       vasServiceTotal,
     }));

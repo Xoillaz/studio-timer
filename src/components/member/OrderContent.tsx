@@ -159,7 +159,7 @@ interface TimelineItem {
 const TIMELINE_LABELS: Record<string, string> = {
   created: '创建订单',
   vas_added: '增值服务',
-  end_timer: '结束计时',
+  order_completed: '结束订单',
 };
 
 function formatTimelineTime(time: string | undefined | null): string {
