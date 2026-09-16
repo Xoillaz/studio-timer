@@ -22,6 +22,7 @@ function formatDuration(minutes: number): string {
 export function OrderDetailContent({ order, currentAmount = 0, equipmentTotal = 0 }: OrderDetailContentProps) {
   const baseAmount = currentAmount || order.baseAmount || 0;
   const eqTotal = equipmentTotal || order.equipmentTotal || 0;
+  const vasTotal = order.vasServiceTotal || 0;
 
   return (
     <div className={styles.detailContent}>
@@ -65,6 +66,19 @@ export function OrderDetailContent({ order, currentAmount = 0, equipmentTotal = 
         </div>
       )}
 
+      {/* 增值服务信息 */}
+      {order.vasServices && order.vasServices.length > 0 && (
+        <div className={styles.infoCard}>
+          <h3 className={styles.cardTitle}>增值服务</h3>
+          {order.vasServices.map((vas, index) => (
+            <div key={index} className={styles.infoRow}>
+              <span className={styles.label}>{vas.name} × {vas.quantity}</span>
+              <span className={styles.value}>¥{vas.subtotal}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 时间信息 */}
       <div className={styles.infoCard}>
         <h3 className={styles.cardTitle}>时间信息</h3>
@@ -97,6 +111,12 @@ export function OrderDetailContent({ order, currentAmount = 0, equipmentTotal = 
           <div className={styles.infoRow}>
             <span className={styles.label}>设备费</span>
             <span className={styles.value}>¥{eqTotal.toFixed(2)}</span>
+          </div>
+        )}
+        {vasTotal > 0 && (
+          <div className={styles.infoRow}>
+            <span className={styles.label}>增值服务费</span>
+            <span className={styles.value}>¥{vasTotal.toFixed(2)}</span>
           </div>
         )}
         {order.extraAmount > 0 && (
