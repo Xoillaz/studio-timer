@@ -167,36 +167,6 @@ export async function POST(
 
         return NextResponse.json(success({ message: '已拒绝账单' }));
       }
-    } else if (order.status === 'partial_exit_pending') {
-      // 部分人离场审核
-      if (action === 'approve') {
-        await prisma.order.update({
-          where: { id: orderId },
-          data: { status: 'entering', remark },
-        });
-
-        await prisma.adminApproval.create({
-          data: {
-            orderId,
-            adminId,
-            action: 'approved',
-            reason: remark,
-          },
-        });
-
-        return NextResponse.json(success({ message: '已同意部分人离场' }));
-      } else if (action === 'reject') {
-        await prisma.adminApproval.create({
-          data: {
-            orderId,
-            adminId,
-            action: 'rejected',
-            reason: remark,
-          },
-        });
-
-        return NextResponse.json(success({ message: '已拒绝部分人离场' }));
-      }
     }
 
     return NextResponse.json(error(ErrorCodes.ORDER_STATUS_ERROR, '订单状态不允许此操作'));

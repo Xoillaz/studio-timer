@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status'); // pending_exit, pending_bill, partial_exit_pending
+    const status = searchParams.get('status'); // pending_exit, pending_bill
 
     const where: Record<string, unknown> = {};
     if (status) {
       where.status = status;
     } else {
-      where.status = { in: ['pending_exit', 'pending_bill', 'partial_exit_pending'] };
+      where.status = { in: ['pending_exit', 'pending_bill'] };
     }
 
     const orders = await prisma.order.findMany({

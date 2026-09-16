@@ -139,7 +139,6 @@ interface TimelineItem {
 const TIMELINE_LABELS: Record<string, string> = {
   created: '创建订单',
   vas_added: '增值服务',
-  partial_exit: '中途离场',
   end_timer: '结束计时',
 };
 
@@ -156,7 +155,7 @@ export function OrderStatusContent({ timeline }: { timeline: TimelineItem[] }) {
                   {TIMELINE_LABELS[item.action] || item.action}
                 </span>
                 <span className={styles.timeValue}>
-                  {item.time ? new Date(item.time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '-'}
+                  {item.time || '-'}
                 </span>
               </div>
               {item.details && <div className={styles.timeDetails}>{item.details}</div>}

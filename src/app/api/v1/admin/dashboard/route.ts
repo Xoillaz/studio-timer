@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     // 待审核数量（pending_exit 和 pending_bill 状态）
     const pendingCount = await prisma.order.count({
       where: {
-        status: { in: ['pending_exit', 'pending_bill', 'partial_exit_pending'] },
+        status: { in: ['pending_exit', 'pending_bill'] },
       },
     });
 
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       where: {
         orders: {
           some: {
-            status: { in: ['entering', 'pending_exit', 'pending_bill', 'partial_exit_pending'] },
+            status: { in: ['entering', 'pending_exit', 'pending_bill'] },
           },
         },
       },

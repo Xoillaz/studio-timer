@@ -23,7 +23,6 @@ interface Order {
 const STATUS_MAP: Record<string, { label: string; variant: 'entering' | 'pending' | 'completed' | 'rejected' | 'default' }> = {
   pending_entry: { label: '待入场', variant: 'pending' },
   entering: { label: '进行中', variant: 'entering' },
-  partial_exit_pending: { label: '部分离场待审核', variant: 'pending' },
   pending_exit: { label: '离场待审核', variant: 'pending' },
   reviewing: { label: '审核中', variant: 'pending' },
   topup_pending: { label: '补差价待审核', variant: 'pending' },

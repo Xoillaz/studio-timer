@@ -18,8 +18,7 @@ interface Order {
 const statusMap: Record<string, string> = {
   pending_entry: '待入场',
   entering: '使用中',
-  partial_exit_pending: '部分离场',
-  pending_exit: '待审核',
+  pending_exit: '离场',
   pending_bill: '待账单',
   completed: '已完成',
   cancelled: '已取消',

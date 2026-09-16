@@ -96,8 +96,7 @@ model Order {
   member            Member    @relation(fields: [memberId], references: [id])
   venue             Venue     @relation(fields: [venueId], references: [id])
   orderEquipments   OrderEquipment[]
-  orderVasServices  OrderVasService[]
-  partialExits      PartialExit[]
+  orderVasServices OrderVasService[]
   topUps            TopUp[]
   operationLogs     OperationLog[]
   adminApprovals    AdminApproval[]
@@ -132,22 +131,6 @@ model OrderVasService {
   vasService    VasService @relation(fields: [vasServiceId], references: [id])
 
   @@map("order_vas_services")
-}
-
-// 部分人离场记录表
-model PartialExit {
-  id            Int       @id @default(autoincrement())
-  orderId       Int       @map("order_id")
-  personCount   Int       @map("person_count") @default(0)
-  remark        String?   @map("remark")
-  status        String    @map("status") @default("pending")
-  approvedBy    Int?      @map("approved_by")
-  approvedAt    DateTime? @map("approved_at")
-  createdAt     DateTime  @map("created_at") @default(now())
-
-  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@map("partial_exits")
 }
 
 // 补差价记录表

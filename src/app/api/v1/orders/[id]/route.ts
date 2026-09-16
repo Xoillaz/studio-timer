@@ -40,9 +40,6 @@ export async function GET(
           },
           orderBy: { createdAt: 'asc' },
         },
-        partialExits: {
-          orderBy: { createdAt: 'asc' },
-        },
       },
     });
 
@@ -88,16 +85,12 @@ export async function GET(
         pricePerUse: ov.vasService.pricePerUse,
         quantity: ov.quantity,
         subtotal: ov.subtotal,
-        createdAt: ov.createdAt.toISOString(),
-      })),
-      partialExits: order.partialExits.map(pe => ({
-        personCount: pe.personCount,
-        createdAt: pe.createdAt.toISOString(),
+        createdAt: new Date(ov.createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
       })),
       leaderName: order.leaderName,
       leaderPhone: order.leaderPhone,
       remark: order.remark,
-      createdAt: order.createdAt.toISOString(),
+      createdAt: new Date(order.createdAt).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }),
       currentAmount: Math.round(currentAmount * 100) / 100,
     }));
   } catch (err) {

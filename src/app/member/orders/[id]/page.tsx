@@ -11,7 +11,6 @@ import styles from './order-detail.module.css';
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
   pending_entry: { label: '待入场', className: 'pending' },
   entering: { label: '进行中', className: 'entering' },
-  partial_exit_pending: { label: '部分离场待审核', className: 'pending' },
   pending_exit: { label: '离场待审核', className: 'pending' },
   reviewing: { label: '审核中', className: 'pending' },
   topup_pending: { label: '补差价待审核', className: 'pending' },
@@ -69,14 +68,6 @@ export default function OrderDetailPage() {
                 action: 'add_item', 
                 time: data.data.entryTime, 
                 details: data.data.equipments.map((e: any) => `${e.name}×${e.quantity}`).join(', ') 
-              });
-            }
-            
-            if (data.data.partialExitTime) {
-              timeline.push({ 
-                action: 'partial_exit', 
-                time: data.data.partialExitTime, 
-                details: `${data.data.partialExitPersonCount || 1}人离场` 
               });
             }
             

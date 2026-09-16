@@ -20,7 +20,6 @@ interface Order {
 const statusMap: Record<string, { label: string; color: string }> = {
   pending_exit: { label: '待离场审核', color: '#ff9800' },
   pending_bill: { label: '待账单审核', color: '#2196f3' },
-  partial_exit_pending: { label: '部分人离场', color: '#9c27b0' },
 };
 
 export default function PendingPage() {

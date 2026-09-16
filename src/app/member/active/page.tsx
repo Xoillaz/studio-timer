@@ -30,14 +30,11 @@ function ActivePageContent() {
   const [serviceItems, setServiceItems] = useState<EquipmentItem[]>([]);
   // 固化的增值服务项（已下单，还未结算）
   const [fixedItems, setFixedItems] = useState<EquipmentItem[]>([]);
-  const [showExitModal, setShowExitModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
-  
-  const [exitPersonCount, setExitPersonCount] = useState<number>(1);
-  const [exitRemark, setExitRemark] = useState<string>('');
+
   const [showTimerInfo, setShowTimerInfo] = useState(false);
-  
+
   const [exiting, setExiting] = useState(false);
   const [error, setError] = useState('');
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -83,6 +80,18 @@ function ActivePageContent() {
       const data = await res.json();
       
       if (data.code === 0) {
+        // 将已下单的增值服务同步到 fixedItems
+        const existingVas = data.data.vasServices || [];
+        if (existingVas.length > 0) {
+          setFixedItems(existingVas.map((v: any) => ({
+            id: v.id,
+            name: v.name,
+            pricePerUse: v.pricePerUse,
+            category: 'vas',
+            selectedCount: v.quantity,
+          })));
+        }
+        
         // 构建时间轴数据
         const timeline = [
           { action: 'created', time: data.data.createdAt, details: '' },
@@ -111,15 +120,6 @@ function ActivePageContent() {
         }
 
         // 部分人离场 - 每一次都独立显示
-        if (data.data.partialExits && data.data.partialExits.length > 0) {
-          data.data.partialExits.forEach((pe: any) => {
-            timeline.push({
-              action: 'partial_exit',
-              time: pe.createdAt,
-              details: `${pe.personCount}人离场`
-            });
-          });
-        }
 
         if (data.data.exitTime) {
           timeline.push({ action: 'end_timer', time: data.data.exitTime, details: '已离场' });
@@ -214,44 +214,6 @@ function ActivePageContent() {
   );
 
   const totalEstimate = calculateCurrentFee() + currentServiceFee + fixedServiceFee + (order?.equipmentTotal || 0) + (order?.vasServiceTotal || 0);
-
-  const handlePartialExit = async () => {
-    if (!orderId) return;
-    
-    setExiting(true);
-    setError('');
-
-    try {
-      const res = await fetch('/api/v1/orders/partial-exit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-          orderId: parseInt(orderId),
-          personCount: exitPersonCount,
-          remark: exitRemark,
-        }),
-      });
-      const data = await res.json();
-      
-      if (data.code === 0) {
-        fetchOrder();
-        setShowExitModal(false);
-        setExitPersonCount(1);
-        setExitRemark('');
-        alert('中途离场记录已提交');
-      } else {
-        setError(data.message || '提交失败');
-      }
-    } catch (err) {
-      console.error('Partial exit error:', err);
-      setError('提交失败，请重试');
-    } finally {
-      setExiting(false);
-    }
-  };
 
   // 下单增值服务
   const handleOrderVas = async () => {
@@ -365,7 +327,7 @@ function ActivePageContent() {
   }
 
   const currentFee = calculateCurrentFee();
-  const showPendingStatus = ['partial_exit_pending', 'pending_exit', 'reviewing', 'topup_pending'].includes(order.status);
+  const showPendingStatus = ['pending_exit', 'reviewing', 'topup_pending'].includes(order.status);
 
   return (
     <Layout showFooter={true}>
@@ -472,9 +434,18 @@ function ActivePageContent() {
               <span>¥{(item.pricePerUse * item.selectedCount).toFixed(2)}</span>
             </div>
           ))}
-          {/* 显示固化的增值服务项 */}
-          {fixedItems.map((item, idx) => (
-            <div key={`fixed-${item.id}-${idx}`} className={styles.detailRow}>
+          {/* 显示固化的增值服务项 - 合并同类项 */}
+          {Object.entries(
+            fixedItems.reduce((acc: Record<string, typeof fixedItems[0]>, item) => {
+              if (acc[item.name]) {
+                acc[item.name].selectedCount += item.selectedCount;
+              } else {
+                acc[item.name] = { ...item };
+              }
+              return acc;
+            }, {})
+          ).map(([name, item]) => (
+            <div key={name} className={styles.detailRow}>
               <span>{item.name} × {item.selectedCount}</span>
               <span>¥{(item.pricePerUse * item.selectedCount).toFixed(2)}</span>
             </div>
@@ -523,13 +494,6 @@ function ActivePageContent() {
                 </Button>
               )}
               <Button
-                variant="secondary"
-                size="small"
-                onClick={() => setShowExitModal(true)}
-              >
-                中途离场
-              </Button>
-              <Button
                 variant="primary"
                 size="small"
                 onClick={() => setShowEndModal(true)}
@@ -542,47 +506,6 @@ function ActivePageContent() {
       </div>
 
       {error && <p className={styles.error}>{error}</p>}
-
-      {/* 中途离场弹窗 */}
-      <Modal
-        open={showExitModal}
-        onClose={() => setShowExitModal(false)}
-        title="中途离场"
-      >
-        <div className={styles.modalForm}>
-          <div className={styles.formItem}>
-            <label>离场人数</label>
-            <input
-              type="number"
-              min="1"
-              value={exitPersonCount}
-              onChange={(e) => setExitPersonCount(parseInt(e.target.value) || 1)}
-              className={styles.input}
-            />
-          </div>
-          <div className={styles.formItem}>
-            <label>备注</label>
-            <textarea
-              value={exitRemark}
-              onChange={(e) => setExitRemark(e.target.value)}
-              placeholder="可选"
-              className={styles.textarea}
-            />
-          </div>
-          <div className={styles.modalButtons}>
-            <Button variant="secondary" onClick={() => setShowExitModal(false)}>
-              取消
-            </Button>
-            <Button 
-              variant="primary" 
-              onClick={handlePartialExit}
-              disabled={exiting}
-            >
-              {exiting ? '提交中...' : '确认'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       {/* 结束弹窗 */}
       <Modal
