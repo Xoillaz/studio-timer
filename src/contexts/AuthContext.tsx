@@ -16,10 +16,12 @@ interface AuthContextType {
   member: Member | null;
   token: string | null;
   isLoading: boolean;
+  hasActiveOrder: boolean;
   login: (phone: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
   recharge: (amount: number) => Promise<void>;
   refreshMember: () => Promise<void>;
+  checkActiveOrder: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [member, setMember] = useState<Member | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
 
   // 初始化时从 localStorage 恢复登录状态
   useEffect(() => {
@@ -123,8 +126,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token]);
 
+  // 检查是否有进行中的订单
+  const checkActiveOrder = useCallback(async () => {
+    if (!token) return;
+    
+    try {
+      const res = await fetch('/api/v1/orders/active', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      const data = await res.json();
+      
+      if (data.code === 0 && data.data) {
+        setHasActiveOrder(true);
+      } else {
+        setHasActiveOrder(false);
+      }
+    } catch {
+      setHasActiveOrder(false);
+    }
+  }, [token]);
+
   return (
-    <AuthContext.Provider value={{ member, token, isLoading, login, logout, recharge, refreshMember }}>
+    <AuthContext.Provider value={{ member, token, isLoading, hasActiveOrder, login, logout, recharge, refreshMember, checkActiveOrder }}>
       {children}
     </AuthContext.Provider>
   );

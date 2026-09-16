@@ -34,6 +34,47 @@
   margin-bottom: var(--space-lg);
 }
 
+/* 标签栏 */
+.tabBar {
+  display: flex;
+  background: var(--color-card);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: none;
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  position: relative;
+}
+
+.tab.active {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 2px;
+  background: var(--color-primary);
+  border-radius: 1px;
+}
+
+/* 标签内容 */
+.tabContent {
+  padding: var(--space-xs);
+  min-height: 300px;
+}
+
 /* 详情内容 */
 .detailContent {
   padding: var(--space-md);

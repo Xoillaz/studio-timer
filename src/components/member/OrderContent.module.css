@@ -1,0 +1,111 @@
+/* 订单内容组件样式 - 状态页复用 */
+
+/* 详情内容 */
+.detailContent {
+  padding: var(--space-xs);
+}
+
+/* 信息卡片 */
+.infoCard {
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.cardTitle {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-xs);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-xs) 0;
+  font-size: var(--font-sm);
+}
+
+.infoRow .label {
+  color: var(--color-text-secondary);
+}
+
+.infoRow .value {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.totalRow {
+  border-top: 1px solid var(--color-border);
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+}
+
+.totalValue {
+  font-size: var(--font-md);
+  color: var(--color-primary);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.contactInfo {
+  text-align: center;
+  padding: var(--space-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+}
+
+.rejectReason {
+  color: var(--color-danger);
+  font-size: var(--font-sm);
+  margin: 0;
+}
+
+/* 状态内容 - 时间列表 */
+.statusContent {
+  padding: var(--space-xs);
+}
+
+.timeList {
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+}
+
+.timeItem {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.timeItem:last-child {
+  border-bottom: none;
+}
+
+.timeLabel {
+  font-size: var(--font-sm);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.timeDetails {
+  display: block;
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+  font-weight: normal;
+  margin-top: 2px;
+}
+
+.timeValue {
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
+}
+
+.emptyTimeline {
+  text-align: center;
+  padding: var(--space-lg);
+  color: var(--color-text-secondary);
+}

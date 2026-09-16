@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import styles from './recharge.module.css';
+import styles from './page.module.css';
 
 const RECHARGE_AMOUNTS = [100, 500, 1000];
 
@@ -42,17 +42,19 @@ export default function RechargePage() {
 
   if (showSuccess) {
     return (
-      <Layout showFooter={false} showBack={true} onBack={() => router.back()}>
-        <div className={styles.successContainer}>
-          <div className={styles.successIcon}>✓</div>
-          <p className={styles.successText}>充值成功</p>
+      <Layout title="充值" showBack onBack={() => router.back()}>
+        <div className={styles.container}>
+          <div className={styles.successContainer}>
+            <div className={styles.successIcon}>✓</div>
+            <p className={styles.successText}>充值成功</p>
+          </div>
         </div>
       </Layout>
     );
   }
 
   return (
-    <Layout showFooter={false} showBack={true} onBack={() => router.back()}>
+    <Layout title="充值" showBack onBack={() => router.back()}>
       <div className={styles.container}>
         {/* 当前余额 */}
         <div className={styles.balanceInfo}>

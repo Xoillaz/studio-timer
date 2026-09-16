@@ -1,0 +1,63 @@
+/* 功能菜单容器 */
+.menuContainer {
+  padding: var(--space-md);
+  padding-top: 0;
+}
+
+/* 菜单分组 - 无标题 */
+.menuGroup {
+  margin-bottom: var(--space-md);
+}
+
+.menuGroup:last-child {
+  margin-bottom: 0;
+}
+
+/* 功能菜单区域 */
+.menuSection {
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.menuItem:last-child {
+  border-bottom: none;
+}
+
+.menuItem:active {
+  background: var(--color-card-hover);
+}
+
+.menuItem.danger .menuLabel {
+  color: var(--color-danger);
+}
+
+.menuIcon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-md);
+  color: var(--color-text-secondary);
+}
+
+.menuLabel {
+  flex: 1;
+  font-size: var(--font-md);
+  color: var(--color-text);
+}
+
+.menuArrow {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-sm);
+}

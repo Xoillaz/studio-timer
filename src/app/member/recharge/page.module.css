@@ -1,0 +1,154 @@
+/* 页面容器 */
+.container {
+  padding: var(--space-md);
+  background: var(--color-bg);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 余额信息 */
+.balanceInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+}
+
+.balanceLabel {
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+}
+
+.balanceValue {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 区块 */
+.section {
+  margin-bottom: var(--space-lg);
+}
+
+.sectionTitle {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+/* 金额选择 */
+.amountGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.amountBtn {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--color-text);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.amountBtn:active {
+  background: var(--color-card-hover);
+}
+
+.amountBtn.selected {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: rgba(0, 51, 153, 0.05);
+}
+
+/* 自定义金额 */
+.customAmount {
+  display: flex;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.currency {
+  font-size: var(--font-md);
+  color: var(--color-text-secondary);
+  margin-right: var(--space-xs);
+}
+
+.customInput {
+  flex: 1;
+  font-size: var(--font-md);
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.error {
+  font-size: var(--font-sm);
+  color: var(--color-danger);
+  text-align: center;
+  margin-bottom: var(--space-sm);
+}
+
+/* 充值按钮 */
+.rechargeBtn {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: white;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.rechargeBtn:active {
+  background: var(--color-primary-dark);
+}
+
+.rechargeBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 成功页面 */
+.successContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.successIcon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: white;
+  background: var(--color-success);
+  border-radius: 50%;
+  margin-bottom: var(--space-md);
+}
+
+.successText {
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--color-text);
+}

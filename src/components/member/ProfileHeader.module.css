@@ -1,0 +1,36 @@
+/* 头像区域 */
+.headerSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-md);
+}
+
+.avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.name {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: white;
+}
+
+.phone {
+  font-size: var(--font-sm);
+  color: rgba(255, 255, 255, 0.8);
+}

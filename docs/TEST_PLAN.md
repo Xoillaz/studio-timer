@@ -433,7 +433,6 @@ npm run test
 
 | 状态 | 可转换状态 |
 |------|-----------|
-| pending_entry | → entering |
 | entering | → partial_exit_pending, → pending_exit |
 | partial_exit_pending | → entering |
 | pending_exit | → topup_pending, → reviewing |

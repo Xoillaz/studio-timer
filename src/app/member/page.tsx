@@ -19,7 +19,7 @@ interface Venue {
 
 export default function MemberHomePage() {
   const router = useRouter();
-  const { member, token, isLoading: authLoading } = useAuth();
+  const { member, token, isLoading: authLoading, checkActiveOrder } = useAuth();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -39,6 +39,19 @@ export default function MemberHomePage() {
 
     const fetchData = async () => {
       try {
+        // 先检查是否有进行中的订单
+        const activeRes = await fetch('/api/v1/orders/active', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const activeData = await activeRes.json();
+        
+        // 如果有进行中的订单，跳转到状态页
+        if (activeData.code === 0 && activeData.data) {
+          router.push(`/member/active?orderId=${activeData.data.id}`);
+          return;
+        }
+
+        // 获取场地列表
         const venuesRes = await fetch('/api/v1/venues?is_active=true');
         const venuesData = await venuesRes.json();
 
@@ -89,8 +102,24 @@ export default function MemberHomePage() {
       });
       const data = await res.json();
 
-      if (data.code === 0) {
-        router.push(`/member/active?orderId=${data.data.orderId}`);
+    if (data.code === 0) {
+        // 自动调用入场接口，开始计时
+        const entryRes = await fetch('/api/v1/orders/entry', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ orderId: data.data.orderId }),
+        });
+        const entryData = await entryRes.json();
+
+        if (entryData.code === 0) {
+          checkActiveOrder();
+          router.push(`/member/active?orderId=${data.data.orderId}`);
+        } else {
+          showToast('error', entryData.message || '入场失败，请重试');
+        }
       } else {
         showToast('error', data.message || '创建订单失败，请重试');
       }

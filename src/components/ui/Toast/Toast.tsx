@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './Toast.module.css';
+import { Icon } from '@/components/ui';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -37,21 +38,21 @@ export default function Toast({
 
   if (!show && !visible) return null;
 
+  const getIconName = () => {
+    switch (type) {
+      case 'success': return 'check';
+      case 'error': return 'x';
+      case 'warning': return 'alert-circle';
+      case 'info': return 'info';
+    }
+  };
+
   return (
     <div className={`${styles.toast} ${styles[type]} ${show ? styles.show : styles.hide}`}>
-      <span className={styles.icon}>{getIcon(type)}</span>
+      <Icon name={getIconName()} size={16} />
       <span className={styles.message}>{message}</span>
     </div>
   );
-}
-
-function getIcon(type: ToastType): string {
-  switch (type) {
-    case 'success': return '✓';
-    case 'error': return '✕';
-    case 'warning': return '⚠';
-    case 'info': return 'ℹ';
-  }
 }
 
 // Toast hook for easy usage

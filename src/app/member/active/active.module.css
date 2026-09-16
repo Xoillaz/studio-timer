@@ -1,17 +1,122 @@
 /* 状态页样式 - 基于 tokens.css */
 
-.loading {
+/* 页面容器 - 背景-前景分离结构 */
+.pageContainer {
+  height: 100vh;
+  background: var(--color-primary);
   display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 背景层：计时器 + 使用时长 + 状态 */
+.headerSection {
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+}
+
+.timerContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timerValue {
+  font-size: 48px;
+  font-weight: 700;
+  color: white;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-family-mono);
+}
+
+.timerLabel {
+  font-size: var(--font-sm);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 前景层 */
+.contentSection {
+  flex: 1;
+  background: var(--color-bg);
+  border-radius: 16px 16px 0 0;
+  padding: var(--space-sm);
+  padding-bottom: calc(var(--space-sm) + 130px); /* 底部操作栏(60px) + 导航栏(70px) */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0; /* 允许 flex 子元素收缩 */
+}
+
+/* 加载状态 */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 200px;
+  color: var(--color-text-secondary);
+  gap: var(--space-sm);
+}
+
+.vasContent {
+  margin-top: var(--space-sm);
+  flex: 1;
+  overflow-y: auto;
+  /* 仅列表区域滚动 */
+}
+
+/* 标签栏 */
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.tab {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--transition-fast);
+}
+
+.tab.active {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: var(--space-md);
+  right: var(--space-md);
+  height: 2px;
+  background: var(--color-primary);
+  border-radius: 1px;
+}
+
+/* 标签内容 */
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--space-sm);
+  min-height: 0; /* 允许 flex 子元素收缩 */
 }
 
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-border-light);
-  border-top-color: var(--color-primary);
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -34,59 +139,22 @@
   margin-bottom: var(--space-lg);
 }
 
-/* 状态卡片 - 左边状态+时间，右边使用时长 */
-.statusCard {
-  margin: var(--space-md);
-  padding: var(--space-lg);
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.statusCard:active {
-  background: var(--color-card-hover);
-}
-
-.statusCardContent {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.statusLeft {
+/* 待审核提示 */
+.pendingTip {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-pending);
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  color: var(--color-text-pending);
+  margin-bottom: var(--space-md);
 }
 
-.statusRight {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.timerValue {
-  font-size: var(--font-display);
-  font-weight: 700;
-  color: var(--color-text);
-  font-variant-numeric: tabular-nums;
-  font-family: var(--font-family-mono);
-}
-
-.timerLabel {
-  font-size: var(--font-xs);
-  color: var(--color-text-secondary);
-}
-
-/* 服务卡片 */
+/* 服务卡片 - 无背景 */
 .serviceCard {
-  margin: 0 var(--space-md);
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
+  /* 无背景 */
 }
 
 .serviceTabs {
@@ -96,7 +164,7 @@
 
 .serviceTab {
   flex: 1;
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   background: none;
   border: none;
   font-size: var(--font-sm);
@@ -121,10 +189,31 @@
   border-radius: 1px;
 }
 
+/* 分组样式 */
+.serviceGroup {
+  margin-bottom: var(--space-sm);
+}
+
+.serviceGroup:last-child {
+  margin-bottom: 0;
+}
+
+.groupHeader {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.groupList {
+  background: var(--color-card);
+}
+
+/* 服务列表 - 改为类似场地列表的布局 */
 .serviceList {
-  padding: var(--space-sm);
-  max-height: 240px;
-  overflow-y: auto;
+  padding: var(--space-xs);
 }
 
 .serviceItem {
@@ -132,83 +221,115 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-sm) var(--space-md);
-  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-xs);
+  transition: background var(--transition-fast);
 }
 
-.serviceItem:last-child {
-  border-bottom: none;
+.serviceItem:active {
+  background: var(--color-card-hover);
 }
 
-.serviceLabel {
+.itemLeft {
   display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  cursor: pointer;
+  flex-direction: column;
+  gap: 4px;
   flex: 1;
 }
 
-.checkbox {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--color-primary);
-}
-
-.serviceName {
-  font-size: var(--font-sm);
+.itemTitle {
+  font-size: var(--font-md);
+  font-weight: 500;
   color: var(--color-text);
 }
 
-.servicePrice {
-  font-size: var(--font-sm);
-  color: var(--color-text-secondary);
-}
-
-/* 待审核提示 */
-.pendingTip {
-  display: flex;
-  align-items: center;
-  margin: var(--space-md);
-  padding: var(--space-md);
-  background: var(--color-bg-pending);
-  border-radius: var(--radius-md);
-  font-size: var(--font-sm);
-  color: var(--color-text-pending);
-}
-
-.pendingIcon {
-  margin-right: var(--space-sm);
-}
-
-/* 余额提示 */
-.balanceTip {
-  padding: var(--space-sm) var(--space-md);
+.itemRemark {
   font-size: var(--font-xs);
   color: var(--color-text-secondary);
-  text-align: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  outline: none;
 }
 
-.balanceValue {
-  color: var(--color-primary);
+.itemRemark::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.itemRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.itemPrice {
+  font-size: var(--font-sm);
   font-weight: 500;
+  color: var(--color-primary);
 }
 
+.itemCtrl {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.itemBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-primary);
+  font-size: var(--font-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.itemBtn:active {
+  background: var(--color-bg);
+}
+
+.itemCount {
+  min-width: 20px;
+  text-align: center;
+  font-size: var(--font-md);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.groupItems {
+  /* 继承 .groupList 样式 */
+}
+
+/* 错误提示 */
 .error {
   padding: var(--space-sm) var(--space-md);
   color: var(--color-danger);
   font-size: var(--font-xs);
   text-align: center;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--color-card);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-dropdown);
 }
 
-/* 底部操作栏 */
+/* 底部操作栏 - 固定在导航栏上方 */
 .fixedBottom {
   position: fixed;
-  bottom: 0;
+  bottom: var(--footer-height, 70px);
   left: 0;
   right: 0;
   background: var(--color-card);
   border-top: 1px solid var(--color-border-light);
-  padding: var(--space-md);
-  padding-bottom: calc(var(--space-md) + var(--safe-area-inset-bottom));
+  padding: var(--space-sm) var(--space-md);
   z-index: var(--z-fixed);
 }
 
@@ -223,37 +344,54 @@
 .priceSection {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .priceLabel {
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.priceHint {
   font-size: var(--font-xs);
   color: var(--color-text-secondary);
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
 }
 
 .detailToggle {
   background: none;
   border: none;
-  font-size: var(--font-xs);
+  font-size: var(--font-sm);
   color: var(--color-primary);
   cursor: pointer;
   padding: 0;
-  margin-top: 2px;
 }
 
 .actionButtons {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
 }
 
-/* 明细展开面板 */
+.actionButtons button {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--font-sm);
+}
+
+/* 明细展开面板 - 固定在底部操作栏上方 */
 .detailPanel {
   position: fixed;
-  bottom: calc(60px + var(--safe-area-inset-bottom));
+  bottom: calc(var(--footer-height, 70px) + 60px);
   left: 0;
   right: 0;
   background: var(--color-card);
   border-top: 1px solid var(--color-border-light);
-  padding: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
   z-index: calc(var(--z-fixed) - 1);
   animation: slideUp 0.2s ease;
 }
@@ -373,4 +511,22 @@
   padding: var(--space-xs) 0;
   font-size: var(--font-sm);
   color: var(--color-text);
+}
+
+/* 弹窗按钮 */
+.modalButtons {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.modalButtons button {
+  flex: 1;
+}
+
+.modalText {
+  font-size: var(--font-sm);
+  color: var(--color-text);
+  text-align: center;
+  padding: var(--space-md) 0;
 }
