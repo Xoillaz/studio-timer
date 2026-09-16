@@ -55,6 +55,23 @@ model Equipment {
   @@map("equipments")
 }
 
+// 增值服务表
+model VasService {
+  id            Int       @id @default(autoincrement())
+  name          String    @map("name") @default("")
+  pricePerUse   Float     @map("price_per_use") @default(0)
+  category      String    @map("category") @default("equipment") // equipment/consumables
+  remark        String?   @map("remark") // 型号/规格备注
+  isActive      Boolean   @map("is_active") @default(true)
+  sortOrder     Int       @map("sort_order") @default(0) // 排序
+  createdAt     DateTime  @map("created_at") @default(now())
+  updatedAt     DateTime  @map("updated_at") @default(now())
+
+  orderVasServices OrderVasService[]
+
+  @@map("vas_services")
+}
+
 // 订单表
 model Order {
   id                Int       @id @default(autoincrement())
@@ -79,6 +96,7 @@ model Order {
   member            Member    @relation(fields: [memberId], references: [id])
   venue             Venue     @relation(fields: [venueId], references: [id])
   orderEquipments   OrderEquipment[]
+  orderVasServices  OrderVasService[]
   partialExits      PartialExit[]
   topUps            TopUp[]
   operationLogs     OperationLog[]
@@ -99,6 +117,21 @@ model OrderEquipment {
   equipment     Equipment @relation(fields: [equipmentId], references: [id])
 
   @@map("order_equipments")
+}
+
+// 订单增值服务关联表
+model OrderVasService {
+  id            Int       @id @default(autoincrement())
+  orderId       Int       @map("order_id")
+  vasServiceId  Int       @map("vas_service_id")
+  quantity      Int       @map("quantity") @default(1)
+  subtotal      Float     @map("subtotal") @default(0)
+  createdAt     DateTime  @map("created_at") @default(now())
+
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vasService    VasService @relation(fields: [vasServiceId], references: [id])
+
+  @@map("order_vas_services")
 }
 
 // 部分人离场记录表

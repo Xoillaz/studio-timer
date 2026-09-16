@@ -75,8 +75,6 @@
 }
 
 .timeItem {
-  display: flex;
-  justify-content: space-between;
   padding: var(--space-sm);
   border-bottom: 1px solid var(--color-border-light);
 }
@@ -85,23 +83,28 @@
   border-bottom: none;
 }
 
+.timeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .timeLabel {
   font-size: var(--font-sm);
   color: var(--color-text);
   font-weight: 500;
 }
 
-.timeDetails {
-  display: block;
-  font-size: var(--font-xs);
-  color: var(--color-text-tertiary);
-  font-weight: normal;
-  margin-top: 2px;
-}
-
 .timeValue {
   font-size: var(--font-xs);
   color: var(--color-text-tertiary);
+}
+
+.timeDetails {
+  display: block;
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
 }
 
 .emptyTimeline {

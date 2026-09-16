@@ -16,6 +16,7 @@ interface EquipmentItem {
   pricePerUse: number;
   category: string;
   selectedCount: number;
+  remark?: string;
 }
 
 function ActivePageContent() {
@@ -26,12 +27,16 @@ function ActivePageContent() {
   
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [serviceItems, setServiceItems] = useState<EquipmentItem[]>([]);
+  // 固化的增值服务项（已下单，还未结算）
+  const [fixedItems, setFixedItems] = useState<EquipmentItem[]>([]);
   const [showExitModal, setShowExitModal] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   
   const [exitPersonCount, setExitPersonCount] = useState<number>(1);
   const [exitRemark, setExitRemark] = useState<string>('');
+  const [showTimerInfo, setShowTimerInfo] = useState(false);
   
   const [exiting, setExiting] = useState(false);
   const [error, setError] = useState('');
@@ -46,21 +51,27 @@ function ActivePageContent() {
     { key: 'status', label: '订单状态' },
   ];
 
-  const [serviceItems, setServiceItems] = useState<EquipmentItem[]>([
-    { id: 1, name: '相机', pricePerUse: 50, category: 'equipment', selectedCount: 0 },
-    { id: 2, name: '灯光', pricePerUse: 30, category: 'equipment', selectedCount: 0 },
-    { id: 3, name: '三脚架', pricePerUse: 20, category: 'equipment', selectedCount: 0 },
-    { id: 4, name: '反光板', pricePerUse: 15, category: 'supplies', selectedCount: 0 },
-    { id: 5, name: '背景纸', pricePerUse: 10, category: 'consumables', selectedCount: 0 },
-    { id: 6, name: '电池', pricePerUse: 5, category: 'consumables', selectedCount: 0 },
-  ]);
-
-  // 增值服务 - 按分组（设备/器材/耗材）
+  // 增值服务 - 按分组（设备/耗材）
   const serviceGroups = [
     { key: 'equipment', label: '设备', items: serviceItems.filter(i => i.category === 'equipment') },
-    { key: 'supplies', label: '器材', items: serviceItems.filter(i => i.category === 'supplies') },
     { key: 'consumables', label: '耗材', items: serviceItems.filter(i => i.category === 'consumables') },
   ];
+
+  // 获取增值服务列表
+  const fetchVasServices = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v1/vasServices?is_active=true');
+      const data = await res.json();
+      if (data.code === 0 && data.data.items) {
+        setServiceItems(data.data.items.map((item: any) => ({
+          ...item,
+          selectedCount: 0,
+        })));
+      }
+    } catch (err) {
+      console.error('获取增值服务失败:', err);
+    }
+  }, []);
 
   const fetchOrder = useCallback(async () => {
     if (!token || !orderId) return;
@@ -76,27 +87,40 @@ function ActivePageContent() {
         const timeline = [
           { action: 'created', time: data.data.createdAt, details: '' },
         ];
-        
-        if (data.data.entryTime) {
-          timeline.push({ action: 'confirmed', time: data.data.entryTime, details: '已入场' });
-        }
-        
-        if (data.data.equipments && data.data.equipments.length > 0) {
-          timeline.push({ 
-            action: 'add_item', 
-            time: data.data.entryTime, 
-            details: data.data.equipments.map((e: any) => `${e.name}×${e.quantity}`).join(', ') 
+
+        // 增值服务 - 按下单时间分组显示
+        if (data.data.vasServices && data.data.vasServices.length > 0) {
+          // 按秒级时间分组（去掉毫秒）
+          const grouped: { [key: string]: any[] } = {};
+          data.data.vasServices.forEach((v: any) => {
+            // 按秒级时间分组（取前19字符：去掉毫秒）
+            const timeKey = v.createdAt ? v.createdAt.substring(0, 19) : 'unknown';
+            if (!grouped[timeKey]) grouped[timeKey] = [];
+            grouped[timeKey].push(v);
+          });
+          
+          // 每组生成一条时间轴记录
+          Object.entries(grouped).forEach(([time, items]: [string, any[]]) => {
+            const details = items.map(v => `${v.name}×${v.quantity}`).join('、');
+            timeline.push({
+              action: 'vas_added',
+              time: time !== 'unknown' ? time : data.data.entryTime,
+              details
+            });
           });
         }
-        
-        if (data.data.partialExitTime) {
-          timeline.push({ 
-            action: 'partial_exit', 
-            time: data.data.partialExitTime, 
-            details: `${data.data.partialExitPersonCount || 1}人离场` 
+
+        // 部分人离场 - 每一次都独立显示
+        if (data.data.partialExits && data.data.partialExits.length > 0) {
+          data.data.partialExits.forEach((pe: any) => {
+            timeline.push({
+              action: 'partial_exit',
+              time: pe.createdAt,
+              details: `${pe.personCount}人离场`
+            });
           });
         }
-        
+
         if (data.data.exitTime) {
           timeline.push({ action: 'end_timer', time: data.data.exitTime, details: '已离场' });
         }
@@ -113,15 +137,31 @@ function ActivePageContent() {
   }, [token, orderId]);
 
   useEffect(() => {
-    if (!authLoading && !token) {
+    // 等待 auth 加载完成
+    if (authLoading) return;
+
+    if (!token) {
       router.push('/login');
       return;
     }
 
-    if (token && orderId) {
+    if (orderId) {
       fetchOrder();
     }
-  }, [token, authLoading, orderId, router, fetchOrder]);
+  }, [authLoading, token, orderId, router, fetchOrder]);
+
+  // 防止 loading 状态卡住
+  useEffect(() => {
+    // 如果 auth 已加载但 loading 仍是 true（可能是 fetchOrder 没被调用），尝试重新获取
+    if (!authLoading && loading && token && orderId) {
+      fetchOrder();
+    }
+  }, [authLoading, loading, token, orderId, fetchOrder]);
+
+  // 获取增值服务列表
+  useEffect(() => {
+    fetchVasServices();
+  }, [fetchVasServices]);
 
   useEffect(() => {
     if (!order || order.status !== 'entering') return;
@@ -150,12 +190,16 @@ function ActivePageContent() {
   const calculateCurrentFee = useCallback(() => {
     if (!order) return 0;
     
-    const billableMinutes = Math.max(30, Math.floor(elapsedSeconds / 60));
+    // 按半小时计费，向上取整
+    const billableHalfHours = Math.ceil(elapsedSeconds / 1800);
     const hourlyRate = order.venuePricePerHour;
-    const baseFee = (billableMinutes / 60) * hourlyRate;
+    const baseFee = billableHalfHours * hourlyRate / 2;
     
     return Math.round(baseFee * 100) / 100;
   }, [order, elapsedSeconds]);
+
+  // 计算计费时长（小时，保留一位小数）
+  const billableHours = order ? Math.ceil(elapsedSeconds / 1800) / 2 : 0;
 
   // 计算当前服务费用
   const currentServiceFee = serviceItems.reduce(
@@ -163,7 +207,13 @@ function ActivePageContent() {
     0
   );
 
-  const totalEstimate = calculateCurrentFee() + currentServiceFee + (order?.equipmentTotal || 0);
+  // 计算固化服务费用
+  const fixedServiceFee = fixedItems.reduce(
+    (sum, item) => sum + item.pricePerUse * item.selectedCount,
+    0
+  );
+
+  const totalEstimate = calculateCurrentFee() + currentServiceFee + fixedServiceFee + (order?.equipmentTotal || 0) + (order?.vasServiceTotal || 0);
 
   const handlePartialExit = async () => {
     if (!orderId) return;
@@ -200,6 +250,61 @@ function ActivePageContent() {
       setError('提交失败，请重试');
     } finally {
       setExiting(false);
+    }
+  };
+
+  // 下单增值服务
+  const handleOrderVas = async () => {
+    // 获取当前选中的服务项
+    const selectedItems = serviceItems.filter(item => item.selectedCount > 0);
+    if (selectedItems.length === 0 || !token || !orderId) return;
+
+    try {
+      const res = await fetch('/api/v1/orders/vas-services', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          orderId: parseInt(orderId),
+          items: selectedItems.map(item => ({
+            vasServiceId: item.id,
+            quantity: item.selectedCount,
+          })),
+        }),
+      });
+      const data = await res.json();
+
+      if (data.code === 0) {
+        // 合并到固化列表（同名项累加数量）
+        setFixedItems(prev => {
+          const newFixed = [...prev];
+          selectedItems.forEach(item => {
+            const existIdx = newFixed.findIndex(f => f.id === item.id);
+            if (existIdx >= 0) {
+              newFixed[existIdx] = {
+                ...newFixed[existIdx],
+                selectedCount: newFixed[existIdx].selectedCount + item.selectedCount
+              };
+            } else {
+              newFixed.push(item);
+            }
+          });
+          return newFixed;
+        });
+
+        // 清空当前选中数量
+        setServiceItems(prev => prev.map(item => ({ ...item, selectedCount: 0 })));
+
+        // 刷新订单，获取最新增值服务数据
+        fetchOrder();
+      } else {
+        alert(data.message || '添加失败');
+      }
+    } catch (err) {
+      console.error('Order vas error:', err);
+      alert('添加失败，请重试');
     }
   };
 
@@ -305,11 +410,11 @@ function ActivePageContent() {
                         <div key={item.id} className={styles.serviceItem}>
                           <div className={styles.itemLeft}>
                             <span className={styles.itemTitle}>{item.name}</span>
-                            <input
-                              type="text"
-                              placeholder="备注型号"
-                              className={styles.itemRemark}
-                            />
+                            {item.remark && (
+                              <span className={styles.itemRemark}>
+                                {item.remark}
+                              </span>
+                            )}
                           </div>
                           <div className={styles.itemRight}>
                             <span className={styles.itemPrice}>¥{item.pricePerUse}</span>
@@ -357,17 +462,23 @@ function ActivePageContent() {
       {showDetail && (
         <div className={styles.detailPanel}>
           <div className={styles.detailRow}>
-            <span>场地费（{order?.venueName}）</span>
+            <span>场地费（{order?.venueName}） × {billableHours} 小时</span>
             <span>¥{currentFee.toFixed(2)}</span>
           </div>
-          <div className={styles.detailRow}>
-            <span>设备费</span>
-            <span>¥{(order?.equipmentTotal || 0).toFixed(2)}</span>
-          </div>
-          <div className={styles.detailRow}>
-            <span>新增服务</span>
-            <span>¥{currentServiceFee.toFixed(2)}</span>
-          </div>
+          {/* 显示当前选中的增值服务项 */}
+          {serviceItems.filter(item => item.selectedCount > 0).map(item => (
+            <div key={item.id} className={styles.detailRow}>
+              <span>{item.name} × {item.selectedCount}</span>
+              <span>¥{(item.pricePerUse * item.selectedCount).toFixed(2)}</span>
+            </div>
+          ))}
+          {/* 显示固化的增值服务项 */}
+          {fixedItems.map((item, idx) => (
+            <div key={`fixed-${item.id}-${idx}`} className={styles.detailRow}>
+              <span>{item.name} × {item.selectedCount}</span>
+              <span>¥{(item.pricePerUse * item.selectedCount).toFixed(2)}</span>
+            </div>
+          ))}
           <div className={`${styles.detailRow} ${styles.detailTotal}`}>
             <span>合计</span>
             <span>¥{totalEstimate.toFixed(2)}</span>
@@ -381,7 +492,18 @@ function ActivePageContent() {
         <div className={styles.bottomContent}>
           <div className={styles.priceSection}>
             <span className={styles.priceLabel}>¥{totalEstimate.toFixed(2)}</span>
-            <span className={styles.priceHint}>预估价格</span>
+            <div className={styles.priceHintRow}>
+              <span className={styles.priceHint}>预估价格</span>
+              <span className={styles.priceInfoWrapper}>
+                <span
+                  className={styles.priceInfo}
+                  onClick={() => setShowTimerInfo(!showTimerInfo)}
+                >?</span>
+                {showTimerInfo && (
+                  <span className={styles.priceInfoText}>按半小时计费，不足30分钟按30分钟计</span>
+                )}
+              </span>
+            </div>
           </div>
           <div className={styles.rightSection}>
             <button 
@@ -395,9 +517,7 @@ function ActivePageContent() {
                 <Button
                   variant="secondary"
                   size="small"
-                  onClick={() => {
-                    // TODO: 调用增值服务下单接口
-                  }}
+                  onClick={handleOrderVas}
                 >
                   下单
                 </Button>
@@ -468,7 +588,6 @@ function ActivePageContent() {
       <Modal
         open={showEndModal}
         onClose={() => setShowEndModal(false)}
-        title="确认结束"
       >
         <div className={styles.modalForm}>
           <p className={styles.modalText}>

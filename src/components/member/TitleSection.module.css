@@ -46,7 +46,8 @@
 .tooltip {
   position: absolute;
   top: 100%;
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);
   margin-top: var(--space-xs);
   padding: var(--space-sm);
   background: var(--color-text);

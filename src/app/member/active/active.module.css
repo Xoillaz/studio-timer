@@ -44,11 +44,12 @@
   background: var(--color-bg);
   border-radius: 16px 16px 0 0;
   padding: var(--space-sm);
-  padding-bottom: calc(var(--space-sm) + 130px); /* 底部操作栏(60px) + 导航栏(70px) */
+  /* 底部操作栏(60px) + 导航栏(60px) = 120px */
+  padding-bottom: calc(var(--space-sm) + var(--footer-height, 60px) + var(--footer-height, 60px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0; /* 允许 flex 子元素收缩 */
+  min-height: 0;
 }
 
 /* 加载状态 */
@@ -71,6 +72,7 @@
 
 /* 标签栏 */
 .tabBar {
+  flex-shrink: 0;
   display: flex;
   border-bottom: 1px solid var(--color-border-light);
 }
@@ -257,6 +259,13 @@
   color: var(--color-text-placeholder);
 }
 
+.itemRemark {
+  font-size: var(--font-xs);
+  color: var(--color-text-secondary);
+  display: block;
+  margin-top: 2px;
+}
+
 .itemRight {
   display: flex;
   flex-direction: column;
@@ -324,7 +333,7 @@
 /* 底部操作栏 - 固定在导航栏上方 */
 .fixedBottom {
   position: fixed;
-  bottom: var(--footer-height, 70px);
+  bottom: var(--footer-height, 60px);
   left: 0;
   right: 0;
   background: var(--color-card);
@@ -347,6 +356,12 @@
   gap: 2px;
 }
 
+.priceHintRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .priceLabel {
   font-size: var(--font-md);
   font-weight: 600;
@@ -356,6 +371,43 @@
 .priceHint {
   font-size: var(--font-xs);
   color: var(--color-text-secondary);
+}
+
+.priceInfoWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.priceInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-text-secondary);
+  color: white;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.priceInfoText {
+  position: fixed;
+  bottom: calc(var(--footer-height, 60px) + 80px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-sm);
+  background: var(--color-text);
+  color: white;
+  font-size: var(--font-xs);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  z-index: 100;
+  box-shadow: var(--shadow-card);
+  line-height: 1.4;
 }
 
 .rightSection {
@@ -386,7 +438,7 @@
 /* 明细展开面板 - 固定在底部操作栏上方 */
 .detailPanel {
   position: fixed;
-  bottom: calc(var(--footer-height, 70px) + 60px);
+  bottom: calc(var(--footer-height, 60px) + 60px);
   left: 0;
   right: 0;
   background: var(--color-card);

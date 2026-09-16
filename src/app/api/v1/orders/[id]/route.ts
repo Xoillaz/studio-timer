@@ -34,6 +34,15 @@ export async function GET(
             equipment: true,
           },
         },
+        orderVasServices: {
+          include: {
+            vasService: true,
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+        partialExits: {
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
 
@@ -72,6 +81,18 @@ export async function GET(
         pricePerUse: oe.equipment.pricePerUse,
         quantity: oe.quantity,
         subtotal: oe.subtotal,
+      })),
+      vasServiceTotal: order.orderVasServices.reduce((sum, ov) => sum + ov.subtotal, 0),
+      vasServices: order.orderVasServices.map(ov => ({
+        name: ov.vasService.name,
+        pricePerUse: ov.vasService.pricePerUse,
+        quantity: ov.quantity,
+        subtotal: ov.subtotal,
+        createdAt: ov.createdAt.toISOString(),
+      })),
+      partialExits: order.partialExits.map(pe => ({
+        personCount: pe.personCount,
+        createdAt: pe.createdAt.toISOString(),
       })),
       leaderName: order.leaderName,
       leaderPhone: order.leaderPhone,

@@ -138,11 +138,9 @@ interface TimelineItem {
 
 const TIMELINE_LABELS: Record<string, string> = {
   created: '创建订单',
-  confirmed: '已确认',
-  add_item: '增加项目',
+  vas_added: '增值服务',
   partial_exit: '中途离场',
   end_timer: '结束计时',
-  pending_settlement: '待结算',
 };
 
 export function OrderStatusContent({ timeline }: { timeline: TimelineItem[] }) {
@@ -153,13 +151,15 @@ export function OrderStatusContent({ timeline }: { timeline: TimelineItem[] }) {
         {timeline && timeline.length > 0 ? (
           timeline.map((item, index) => (
             <div key={index} className={styles.timeItem}>
-              <div className={styles.timeLabel}>
-                {TIMELINE_LABELS[item.action] || item.action}
-                {item.details && <span className={styles.timeDetails}>{item.details}</span>}
+              <div className={styles.timeHeader}>
+                <span className={styles.timeLabel}>
+                  {TIMELINE_LABELS[item.action] || item.action}
+                </span>
+                <span className={styles.timeValue}>
+                  {item.time ? new Date(item.time).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '-'}
+                </span>
               </div>
-              <div className={styles.timeValue}>
-                {item.time ? new Date(item.time).toLocaleString('zh-CN') : '-'}
-              </div>
+              {item.details && <div className={styles.timeDetails}>{item.details}</div>}
             </div>
           ))
         ) : (
