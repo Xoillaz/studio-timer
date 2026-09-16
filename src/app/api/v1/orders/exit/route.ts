@@ -27,6 +27,11 @@ export async function POST(request: NextRequest) {
       include: {
         venue: true,
         member: true,
+        orderVasServices: {
+          include: {
+            vasService: true,
+          },
+        },
       },
     });
 
@@ -47,24 +52,30 @@ export async function POST(request: NextRequest) {
     // 半小时起步，不足半小时按半小时计
     const billableMinutes = Math.max(30, durationMinutes);
     const baseAmount = (billableMinutes / 60) * order.venue.pricePerHour;
+    
+    // 计算增值服务费用
+    const vasAmount = order.orderVasServices.reduce((sum, ov) => sum + ov.subtotal, 0);
+    
+    // 总费用 = 场地费 + 增值服务费
+    const totalAmount = baseAmount + vasAmount;
 
     // 检查余额是否足够
-    if (order.member.balance < baseAmount) {
+    if (order.member.balance < totalAmount) {
       return NextResponse.json(
         error(ErrorCodes.INSUFFICIENT_BALANCE, '余额不足，请先充值', {
-          required: (baseAmount - order.member.balance).toFixed(2),
+          required: (totalAmount - order.member.balance).toFixed(2),
           current: order.member.balance,
         }),
         { status: 400 }
       );
     }
 
-    // 扣减余额
+    // 扣减余额（场地费 + 增值服务费）
     await prisma.member.update({
       where: { id: memberId },
       data: {
         balance: {
-          decrement: baseAmount,
+          decrement: totalAmount,
         },
       },
     });

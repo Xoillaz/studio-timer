@@ -32,6 +32,8 @@ function ActivePageContent() {
   const [fixedItems, setFixedItems] = useState<EquipmentItem[]>([]);
   const [showEndModal, setShowEndModal] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
+  const [insufficientAmount, setInsufficientAmount] = useState('0');
 
   const [showTimerInfo, setShowTimerInfo] = useState(false);
 
@@ -291,6 +293,10 @@ function ActivePageContent() {
         setShowEndModal(false);
         checkActiveOrder();
         router.push('/member');
+      } else if (data.code === 1001 && data.data?.required) {
+        // 余额不足
+        setInsufficientAmount(data.data.required);
+        setShowInsufficientBalance(true);
       } else {
         setError(data.message || '提交失败');
       }
@@ -526,6 +532,30 @@ function ActivePageContent() {
               disabled={exiting}
             >
               {exiting ? '提交中...' : '确认结束'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* 余额不足弹窗 */}
+      <Modal
+        open={showInsufficientBalance}
+        onClose={() => setShowInsufficientBalance(false)}
+      >
+        <div className={styles.modalForm}>
+          <h3 className={styles.modalTitle}>余额不足</h3>
+          <p className={styles.modalText}>
+            需要充值 ¥{insufficientAmount} 才能完成结算
+          </p>
+          <div className={styles.modalButtons}>
+            <Button variant="secondary" onClick={() => setShowInsufficientBalance(false)}>
+              取消
+            </Button>
+            <Button 
+              variant="primary" 
+              onClick={() => router.push('/member/recharge')}
+            >
+              去充值
             </Button>
           </div>
         </div>

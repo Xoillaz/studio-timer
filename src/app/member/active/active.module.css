@@ -576,6 +576,13 @@
   flex: 1;
 }
 
+.modalTitle {
+  font-size: var(--font-lg);
+  color: var(--color-text);
+  text-align: center;
+  margin-bottom: var(--space-sm);
+}
+
 .modalText {
   font-size: var(--font-sm);
   color: var(--color-text);
