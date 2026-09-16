@@ -36,6 +36,10 @@ yarn-error.log*
 prisma/dev.db
 prisma/*.db
 
+# testing (测试文件不推送)
+__tests__/
+vitest.config.ts
+
 # vercel
 .vercel
 
