@@ -162,6 +162,12 @@ const TIMELINE_LABELS: Record<string, string> = {
   end_timer: '结束计时',
 };
 
+function formatTimelineTime(time: string | undefined | null): string {
+  if (!time) return '-';
+  // 统一格式：去掉毫秒，只显示到秒
+  return time.replace(/\.\d{3}/, '');
+}
+
 export function OrderStatusContent({ timeline }: { timeline: TimelineItem[] }) {
   return (
     <div className={styles.statusContent}>
@@ -175,7 +181,7 @@ export function OrderStatusContent({ timeline }: { timeline: TimelineItem[] }) {
                   {TIMELINE_LABELS[item.action] || item.action}
                 </span>
                 <span className={styles.timeValue}>
-                  {item.time || '-'}
+                  {formatTimelineTime(item.time)}
                 </span>
               </div>
               {item.details && <div className={styles.timeDetails}>{item.details}</div>}

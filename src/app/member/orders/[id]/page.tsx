@@ -54,26 +54,32 @@ export default function OrderDetailPage() {
             const timeline = [
               { action: 'created', time: data.data.createdAt, details: '' },
             ];
-            
-            if (data.data.confirmedAt) {
-              timeline.push({ action: 'confirmed', time: data.data.confirmedAt, details: '' });
-            }
-            
-            if (data.data.entryTime) {
-              timeline.push({ action: 'confirmed', time: data.data.entryTime, details: '已入场' });
-            }
-            
-            if (data.data.equipments && data.data.equipments.length > 0) {
-              timeline.push({ 
-                action: 'add_item', 
-                time: data.data.entryTime, 
-                details: data.data.equipments.map((e: any) => `${e.name}×${e.quantity}`).join(', ') 
+
+            // 增值服务 - 按下单时间分组显示
+            if (data.data.vasServices && data.data.vasServices.length > 0) {
+              const grouped: { [key: string]: any[] } = {};
+              data.data.vasServices.forEach((v: any) => {
+                const timeKey = v.createdAt ? v.createdAt.substring(0, 19) : 'unknown';
+                if (!grouped[timeKey]) grouped[timeKey] = [];
+                grouped[timeKey].push(v);
+              });
+              
+              Object.entries(grouped).forEach(([time, items]: [string, any[]]) => {
+                const details = items.map(v => `${v.name}×${v.quantity}`).join('、');
+                timeline.push({
+                  action: 'vas_added',
+                  time: time !== 'unknown' ? time : data.data.entryTime,
+                  details
+                });
               });
             }
             
+            if (data.data.entryTime) {
+              timeline.push({ action: 'confirmed', time: data.data.entryTime, details: '' });
+            }
+            
             if (data.data.exitTime) {
-              timeline.push({ action: 'end_timer', time: data.data.exitTime, details: '已离场' });
-              timeline.push({ action: 'pending_settlement', time: data.data.exitTime, details: '' });
+              timeline.push({ action: 'end_timer', time: data.data.exitTime, details: '' });
             }
             
             setOrder({ ...data.data, timeline });
@@ -91,7 +97,7 @@ export default function OrderDetailPage() {
 
   if (authLoading || loading) {
     return (
-      <PageLayout title="订单详情">
+      <PageLayout title="订单内容">
         <div className={styles.loading}>
           <div className={styles.spinner}></div>
         </div>
@@ -101,7 +107,7 @@ export default function OrderDetailPage() {
 
   if (!order) {
     return (
-      <PageLayout title="订单详情">
+      <PageLayout title="订单内容">
         <div className={styles.empty}>
           <p>订单不存在</p>
           <button 
@@ -118,7 +124,7 @@ export default function OrderDetailPage() {
   const statusInfo = STATUS_MAP[order.status] || { label: order.status, className: '' };
 
   return (
-    <PageLayout title="订单详情">
+    <PageLayout title="订单内容">
       {/* 标签栏 */}
       <div className={styles.tabBar}>
         {tabs.map((tab) => (

@@ -54,7 +54,7 @@ const memberNavs: NavItem[] = [
 export default function Footer() {
   const pathname = usePathname();
   const router = useRouter();
-  const { member, hasActiveOrder } = useAuth();
+  const { member } = useAuth();
 
   const handleNavClick = (item: NavItem, e: React.MouseEvent) => {
     if (item.requiresAuth && !member) {
@@ -78,16 +78,15 @@ export default function Footer() {
             isActive = isRentalActive;
           }
           
+          // 租赁标签：默认跳转到 /member（member 首页会判断是否跳转 active）
+          
           // 未登录时，我的页面跳转到登录页
           const href = item.requiresAuth && !member ? '/login' : item.href;
-          
-          // 租赁标签：有进行中订单时跳转到状态页
-          const finalHref = item.href === '/member' && hasActiveOrder ? '/member/active' : href;
           
           return (
             <Link
               key={item.href}
-              href={finalHref}
+              href={href}
               className={`${styles.navItem} ${isActive ? styles.active : ''}`}
               onClick={(e) => handleNavClick(item, e)}
             >
