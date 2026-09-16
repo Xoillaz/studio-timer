@@ -74,13 +74,15 @@ export default function OrdersPage() {
           <div className={styles.spinner}></div>
           <span className={styles.loadingText}>加载中...</span>
         </div>
-      </Layout>
+      </div>
+    </Layout>
     );
   }
 
   return (
     <Layout showFooter={true}>
-      {orders.length === 0 ? (
+      <div className={styles.container}>
+        {orders.length === 0 ? (
         <div className={styles.empty}>
           <div className={styles.emptyIcon}>
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
@@ -131,7 +133,7 @@ export default function OrdersPage() {
             );
           })}
         </div>
-      )}
+      </div>
     </Layout>
   );
 }
