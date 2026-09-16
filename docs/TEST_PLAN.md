@@ -627,6 +627,47 @@ jobs:
 
 ---
 
-文档版本：1.1
+文档版本：1.2
 创建日期：2026-01-15
-更新日期：2026-09-15
+更新日期：2026-09-16
+
+## 附录 A：后端重构变更记录 (v1.5)
+
+### A.1 数据库变更
+
+| 变更项 | 原设计 | 新设计 |
+|--------|--------|--------|
+| 设备管理 | Equipment 表 + OrderEquipment 表 | 删除 |
+| 增值服务 | 无 | VasService 表 + OrderVasService 表 |
+| 订单状态 | 7种状态 | 3种状态 (pending/active/completed) |
+| 部分人离场 | partial_exits 表 | 删除 |
+| 订单增值服务 | - | 新增 created_at 字段 |
+
+### A.2 订单状态变迁
+
+**重构前：**
+```
+pending_entry → entering → partial_exit_pending → entering → pending_exit → reviewing → completed
+```
+
+**重构后：**
+```
+pending → active → completed
+```
+
+### A.3 API 变更
+
+| 接口 | 变更 |
+|------|------|
+| 创建订单 | 移除 equipment_ids 参数 |
+| 增值服务 | 新增 `/orders/:id/services` 接口 |
+| 离场 | 直接从 active → completed，自动扣款 |
+| 审核 | 移除部分人离场审核 |
+
+### A.4 测试用例更新
+
+| 模块 | 更新内容 |
+|------|----------|
+| M3 | 设备 → 增值服务，部分人离场测试删除 |
+| M4 | 部分人离场测试删除，状态审核简化 |
+| M5 | 状态流转测试更新为新状态机 |

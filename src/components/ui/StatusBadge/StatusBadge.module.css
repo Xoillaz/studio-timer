@@ -9,8 +9,8 @@
   white-space: nowrap;
 }
 
-/* 使用中 */
-.entering {
+/* 进行中 */
+.active {
   background: var(--color-bg-entering);
   color: var(--color-text-entering);
 }

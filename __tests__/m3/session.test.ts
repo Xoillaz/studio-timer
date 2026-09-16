@@ -6,6 +6,9 @@
  * - SKU 选择与预计价格计算
  * - 余额不足时入场拦截
  * - 入场成功与订单创建
+ * 
+ * 更新记录：
+ * - v1.5: 重构后使用 VasService (增值服务)，订单状态简化为 pending → active → completed
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -19,11 +22,12 @@ interface Venue {
   is_active: boolean;
 }
 
-interface Equipment {
+interface VasService {
   id: number;
   name: string;
   price_per_use: number;
-  description: string;
+  category: 'equipment' | 'consumables';
+  remark: string;
   is_active: boolean;
 }
 
@@ -43,15 +47,7 @@ interface Order {
   updated_at: string;
 }
 
-type OrderStatus = 
-  | 'pending_entry' 
-  | 'entering' 
-  | 'partial_exit_pending' 
-  | 'pending_exit' 
-  | 'reviewing' 
-  | 'topup_pending' 
-  | 'rejected' 
-  | 'completed';
+type OrderStatus = 'pending' | 'active' | 'completed';
 
 interface Member {
   id: number;
@@ -60,57 +56,53 @@ interface Member {
   balance: number;
 }
 
-interface OrderEquipment {
+interface OrderVasService {
   id: number;
   order_id: number;
-  equipment_id: number;
+  vas_service_id: number;
   quantity: number;
   subtotal: number;
+  created_at: string;
 }
 
 // Mock Data Store
 let venues: Venue[] = [
-  { id: 1, name: '场地A', price_per_hour: 50, description: '50平米实景棚', is_active: true },
-  { id: 2, name: '场地B', price_per_hour: 80, description: '30平米绿幕棚', is_active: true }
+  { id: 1, name: '实景棚', price_per_hour: 200, description: '50平米实景棚', is_active: true },
+  { id: 2, name: '绿幕棚', price_per_hour: 150, description: '30平米绿幕棚', is_active: true }
 ];
 
-let equipments: Equipment[] = [
-  { id: 1, name: '设备A', price_per_use: 20, description: 'Sony FX6', is_active: true },
-  { id: 2, name: '设备B', price_per_use: 30, description: 'Canon R5', is_active: true }
+let vasServices: VasService[] = [
+  { id: 1, name: '专业摄影机', price_per_use: 100, category: 'equipment', remark: 'Sony FX6', is_active: true },
+  { id: 2, name: '单反相机', price_per_use: 50, category: 'equipment', remark: 'Canon R5', is_active: true },
+  { id: 3, name: 'LED补光灯', price_per_use: 20, category: 'equipment', remark: 'Aputure 300d', is_active: true }
 ];
 
 let orders: Order[] = [];
-let orderEquipments: OrderEquipment[] = [];
+let orderVasServices: OrderVasService[] = [];
 let orderIdCounter = 1;
 
 // Mock API
 const mockApi = {
   getVenues: async (): Promise<Venue[]> => venues.filter(v => v.is_active),
-  getEquipments: async (): Promise<Equipment[]> => equipments.filter(e => e.is_active),
+  getVasServices: async (): Promise<VasService[]> => vasServices.filter(v => v.is_active),
   
   createOrder: async (data: {
     member_id: number;
     venue_id: number;
-    equipment_items: Array<{ equipment_id: number; quantity: number }>;
-    leader_name?: string;
-    leader_phone?: string;
   }): Promise<Order> => {
     const venue = venues.find(v => v.id === data.venue_id);
     if (!venue) throw new Error('场地不存在');
-    
-    // 计算基础费用（按小时，暂不计算设备）
-    const base_amount = 0;
     
     const order: Order = {
       id: orderIdCounter++,
       order_no: `ORD${Date.now()}`,
       member_id: data.member_id,
       venue_id: data.venue_id,
-      status: 'entering',
-      entry_time: new Date().toISOString(),
+      status: 'pending',
+      entry_time: null,
       exit_time: null,
       duration_minutes: 0,
-      base_amount,
+      base_amount: 0,
       extra_amount: 0,
       final_amount: 0,
       created_at: new Date().toISOString(),
@@ -118,21 +110,17 @@ const mockApi = {
     };
     
     orders.push(order);
+    return order;
+  },
+  
+  entry: async (orderId: number): Promise<Order> => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) throw new Error('订单不存在');
+    if (order.status !== 'pending') throw new Error('订单状态不允许此操作');
     
-    // 创建订单设备关联
-    for (const item of data.equipment_items) {
-      const equipment = equipments.find(e => e.id === item.equipment_id);
-      if (equipment) {
-        orderEquipments.push({
-          id: orderEquipments.length + 1,
-          order_id: order.id,
-          equipment_id: item.equipment_id,
-          quantity: item.quantity,
-          subtotal: equipment.price_per_use * item.quantity
-        });
-        order.base_amount += equipment.price_per_use * item.quantity;
-      }
-    }
+    order.status = 'active';
+    order.entry_time = new Date().toISOString();
+    order.updated_at = new Date().toISOString();
     
     return order;
   },
@@ -149,16 +137,17 @@ class BillingService {
    * 规则：按分钟计费，不足30分钟按30分钟计
    */
   static calculateVenueFee(pricePerHour: number, durationMinutes: number): number {
-    const hours = durationMinutes / 60;
-    const actualHours = Math.ceil(durationMinutes / 30) * 0.5; // 不足30分钟按30分钟计
-    return Math.round(pricePerHour * actualHours * 100) / 100;
+    if (durationMinutes <= 0) return 0;
+    const billableMinutes = Math.ceil(durationMinutes / 30) * 30;
+    const hours = billableMinutes / 60;
+    return Math.round(pricePerHour * hours * 100) / 100;
   }
   
   /**
-   * 计算设备费用
+   * 计算增值服务费用
    */
-  static calculateEquipmentFee(equipmentItems: Array<{ price: number; quantity: number }>): number {
-    return equipmentItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  static calculateVasFee(vasItems: Array<{ price: number; quantity: number }>): number {
+    return vasItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }
   
   /**
@@ -167,14 +156,14 @@ class BillingService {
   static calculateOrderFee(
     venue: Venue, 
     durationMinutes: number,
-    orderEquipments: OrderEquipment[]
+    orderVasServices: OrderVasService[]
   ): number {
     const venueFee = this.calculateVenueFee(venue.price_per_hour, durationMinutes);
-    const equipmentFee = orderEquipments.reduce((sum, oe) => {
-      const equipment = equipments.find(e => e.id === oe.equipment_id);
-      return sum + (equipment ? equipment.price_per_use * oe.quantity : 0);
+    const vasFee = orderVasServices.reduce((sum, ovs) => {
+      const vas = vasServices.find(v => v.id === ovs.vas_service_id);
+      return sum + (vas ? vas.price_per_use * ovs.quantity : 0);
     }, 0);
-    return Math.round((venueFee + equipmentFee) * 100) / 100;
+    return Math.round((venueFee + vasFee) * 100) / 100;
   }
 }
 
@@ -186,32 +175,30 @@ class SessionService {
     this.currentMember = member;
   }
   
-  async getSKUSelection(): Promise<{ venues: Venue[]; equipments: Equipment[] }> {
+  async getSKUSelection(): Promise<{ venues: Venue[]; vasServices: VasService[] }> {
     const venues = await mockApi.getVenues();
-    const equipments = await mockApi.getEquipments();
-    return { venues, equipments };
+    const vasServices = await mockApi.getVasServices();
+    return { venues, vasServices };
   }
   
   /**
    * 计算预计价格
-   * T3-1: 预计5小时价格 = 50×5 + 20×1 = ¥270.00
    */
   calculateEstimatedPrice(
     venue: Venue, 
-    equipmentItems: Array<{ equipment: Equipment; quantity: number }>,
+    vasItems: Array<{ vasService: VasService; quantity: number }>,
     estimatedHours: number
   ): number {
     const venueFee = venue.price_per_hour * estimatedHours;
-    const equipmentFee = equipmentItems.reduce(
-      (sum, item) => sum + item.equipment.price_per_use * item.quantity, 
+    const vasFee = vasItems.reduce(
+      (sum, item) => sum + item.vasService.price_per_use * item.quantity, 
       0
     );
-    return Math.round((venueFee + equipmentFee) * 100) / 100;
+    return Math.round((venueFee + vasFee) * 100) / 100;
   }
   
   /**
    * 校验余额是否足够入场
-   * T3-2: 余额不足时入场拦截
    */
   checkBalanceForEntry(estimatedPrice: number): { sufficient: boolean; required: number; deficit: number } {
     const deficit = Math.max(0, estimatedPrice - this.currentMember.balance);
@@ -223,25 +210,14 @@ class SessionService {
   }
   
   /**
-   * 申请入场
-   * T3-3: 入场成功与订单创建
+   * 创建订单（选择场地，待入场）
    */
-  async entry(
-    venueId: number, 
-    equipmentItems: Array<{ equipment_id: number; quantity: number }>
-  ): Promise<{ success: boolean; order?: Order; error?: string }> {
+  async createOrder(venueId: number): Promise<{ success: boolean; order?: Order; error?: string }> {
     const venue = venues.find(v => v.id === venueId);
     if (!venue) return { success: false, error: '场地不存在' };
     
     // 估算入场费用（按1小时计算）
-    const estimatedPrice = this.calculateEstimatedPrice(
-      venue, 
-      equipmentItems.map(e => ({ 
-        equipment: equipments.find(eq => eq.id === e.equipment_id)!, 
-        quantity: e.quantity 
-      })), 
-      1
-    );
+    const estimatedPrice = venue.price_per_hour * 1;
     
     // 检查余额
     const balanceCheck = this.checkBalanceForEntry(estimatedPrice);
@@ -252,14 +228,24 @@ class SessionService {
       };
     }
     
-    // 创建订单
     const order = await mockApi.createOrder({
       member_id: this.currentMember.id,
-      venue_id: venueId,
-      equipment_items: equipmentItems
+      venue_id: venueId
     });
     
     return { success: true, order };
+  }
+  
+  /**
+   * 入场（开始计时）
+   */
+  async entry(orderId: number): Promise<{ success: boolean; order?: Order; error?: string }> {
+    try {
+      const order = await mockApi.entry(orderId);
+      return { success: true, order };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
   }
 }
 
@@ -269,166 +255,129 @@ describe('M3 会话与计时 - SKU选择与会话', () => {
   
   beforeEach(() => {
     orders = [];
-    orderEquipments = [];
+    orderVasServices = [];
     orderIdCounter = 1;
     sessionService = new SessionService(testMember);
   });
   
   describe('T3-1: SKU 选择与预计价格计算', () => {
     it('should calculate estimated price correctly', async () => {
-      // Arrange
-      const venue = venues[0]; // 场地A ¥50/h
-      const equipment = equipments[0]; // 设备A ¥20/次
-      const equipmentItems = [{ equipment, quantity: 1 }];
+      const venue = venues[0]; // 实景棚 ¥200/h
+      const vasService = vasServices[0]; // 专业摄影机 ¥100/次
+      const vasItems = [{ vasService, quantity: 1 }];
       const estimatedHours = 5;
       
-      // Act
-      const price = sessionService.calculateEstimatedPrice(venue, equipmentItems, estimatedHours);
+      const price = sessionService.calculateEstimatedPrice(venue, vasItems, estimatedHours);
       
-      // Assert - 预计5小时价格 = 50×5 + 20×1 = ¥270.00
-      expect(price).toBe(270);
+      // 预计5小时价格 = 200×5 + 100×1 = ¥1100
+      expect(price).toBe(1100);
     });
     
-    it('should calculate price with multiple equipments', async () => {
-      // Arrange
-      const venue = venues[0]; // ¥50/h
-      const equipmentA = equipments[0]; // ¥20/次
-      const equipmentB = equipments[1]; // ¥30/次
-      const equipmentItems = [
-        { equipment: equipmentA, quantity: 2 },
-        { equipment: equipmentB, quantity: 1 }
+    it('should calculate price with multiple vas services', async () => {
+      const venue = venues[0]; // ¥200/h
+      const vasA = vasServices[0]; // ¥100/次
+      const vasB = vasServices[2]; // ¥20/次
+      const vasItems = [
+        { vasService: vasA, quantity: 2 },
+        { vasService: vasB, quantity: 1 }
       ];
       const estimatedHours = 3;
       
-      // Act
-      const price = sessionService.calculateEstimatedPrice(venue, equipmentItems, estimatedHours);
+      const price = sessionService.calculateEstimatedPrice(venue, vasItems, estimatedHours);
       
-      // Assert - 50×3 + 20×2 + 30×1 = 150 + 40 + 30 = ¥220
-      expect(price).toBe(220);
+      // 200×3 + 100×2 + 20×1 = 600 + 200 + 20 = ¥820
+      expect(price).toBe(820);
     });
     
-    it('should get active venues and equipments', async () => {
-      // Act
-      const { venues: activeVenues, equipments: activeEquipments } = await sessionService.getSKUSelection();
+    it('should get active venues and vas services', async () => {
+      const { venues: activeVenues, vasServices: activeVasServices } = await sessionService.getSKUSelection();
       
-      // Assert
       expect(activeVenues.length).toBe(2);
-      expect(activeEquipments.length).toBe(2);
+      expect(activeVasServices.length).toBe(3);
     });
   });
   
   describe('T3-2: 余额不足时入场拦截', () => {
     it('should block entry when balance is insufficient', async () => {
-      // Arrange - 余额 0 的会员
       const poorMember: Member = { id: 2, name: '李四', phone: '13800138001', balance: 0 };
       const poorSession = new SessionService(poorMember);
-      const venue = venues[0]; // ¥50/h
-      const equipmentItems: Array<{ equipment_id: number; quantity: number }> = [];
+      const venue = venues[0]; // ¥200/h
       
-      // Act
-      const result = await poorSession.entry(venue.id, equipmentItems);
+      const result = await poorSession.createOrder(venue.id);
       
-      // Assert
       expect(result.success).toBe(false);
       expect(result.error).toContain('余额不足');
     });
     
     it('should show required amount in error message', async () => {
-      // Arrange
       const poorMember: Member = { id: 2, name: '李四', phone: '13800138001', balance: 0 };
       const poorSession = new SessionService(poorMember);
       const venue = venues[0];
-      const equipmentItems: Array<{ equipment_id: number; quantity: number }> = [];
       
-      // Act
-      const result = await poorSession.entry(venue.id, equipmentItems);
+      const result = await poorSession.createOrder(venue.id);
       
-      // Assert - 需要充值至少¥50（按1小时估算）
       expect(result.error).toContain('¥');
     });
   });
   
   describe('T3-3: 入场成功与订单创建', () => {
-    it('should create order with entering status', async () => {
-      // Arrange
+    it('should create order with pending status', async () => {
       const venue = venues[0];
-      const equipmentItems: Array<{ equipment_id: number; quantity: number }> = [
-        { equipment_id: 1, quantity: 1 }
-      ];
       
-      // Act
-      const result = await sessionService.entry(venue.id, equipmentItems);
+      const result = await sessionService.createOrder(venue.id);
       
-      // Assert
       expect(result.success).toBe(true);
       expect(result.order).toBeDefined();
-      expect(result.order!.status).toBe('entering');
-      expect(result.order!.entry_time).toBeTruthy();
+      expect(result.order!.status).toBe('pending');
+    });
+    
+    it('should entry successfully and change status to active', async () => {
+      const venue = venues[0];
+      const createResult = await sessionService.createOrder(venue.id);
+      
+      const entryResult = await sessionService.entry(createResult.order!.id);
+      
+      expect(entryResult.success).toBe(true);
+      expect(entryResult.order!.status).toBe('active');
+      expect(entryResult.order!.entry_time).toBeTruthy();
     });
     
     it('should record entry time', async () => {
-      // Arrange
       const venue = venues[0];
-      const equipmentItems: Array<{ equipment_id: number; quantity: number }> = [];
+      const createResult = await sessionService.createOrder(venue.id);
       const beforeEntry = new Date();
       
-      // Act
-      const result = await sessionService.entry(venue.id, equipmentItems);
+      const entryResult = await sessionService.entry(createResult.order!.id);
       const afterEntry = new Date();
       
-      // Assert
-      const entryTime = new Date(result.order!.entry_time!);
+      const entryTime = new Date(entryResult.order!.entry_time!);
       expect(entryTime.getTime()).toBeGreaterThanOrEqual(beforeEntry.getTime());
       expect(entryTime.getTime()).toBeLessThanOrEqual(afterEntry.getTime());
-    });
-    
-    it('should create order with equipment items', async () => {
-      // Arrange
-      const venue = venues[0];
-      const equipmentItems: Array<{ equipment_id: number; quantity: number }> = [
-        { equipment_id: 1, quantity: 2 },
-        { equipment_id: 2, quantity: 1 }
-      ];
-      
-      // Act
-      const result = await sessionService.entry(venue.id, equipmentItems);
-      
-      // Assert - 验证订单设备关联已创建
-      expect(result.success).toBe(true);
-      // 订单基础费用应包含设备费用: 20*2 + 30*1 = 70
-      expect(result.order!.base_amount).toBe(70);
     });
   });
   
   describe('计费规则测试', () => {
     it('should calculate venue fee by minute - under 30 min', () => {
-      // 不足30分钟按30分钟计
-      const fee = BillingService.calculateVenueFee(50, 20); // 20分钟
-      expect(fee).toBe(25); // ¥50 * 0.5 = ¥25
+      const fee = BillingService.calculateVenueFee(200, 20);
+      expect(fee).toBe(100); // ¥200/小时 ÷ 2 = ¥100/半小时 * 1单元 = ¥100
     });
     
     it('should calculate venue fee by minute - exactly 30 min', () => {
-      const fee = BillingService.calculateVenueFee(50, 30);
-      expect(fee).toBe(25);
+      const fee = BillingService.calculateVenueFee(200, 30);
+      expect(fee).toBe(100); // ¥200/小时 ÷ 2 = ¥100/半小时 * 1单元 = ¥100
     });
     
     it('should calculate venue fee by minute - over 30 min', () => {
-      const fee = BillingService.calculateVenueFee(50, 45); // 45分钟 = 1小时
-      expect(fee).toBe(50);
+      const fee = BillingService.calculateVenueFee(200, 45);
+      expect(fee).toBe(200); // ¥200/小时 ÷ 2 = ¥100/半小时 * 2单元 = ¥200
     });
     
-    it('should calculate venue fee by minute - 2.5 hours', () => {
-      // 150分钟 = 5个30分钟单元 = 2.5小时 = ¥50 × 2.5 = ¥125
-      const fee = BillingService.calculateVenueFee(50, 150);
-      expect(fee).toBe(125);
-    });
-    
-    it('should calculate equipment fee', () => {
-      const fee = BillingService.calculateEquipmentFee([
-        { price: 20, quantity: 2 },
-        { price: 30, quantity: 1 }
+    it('should calculate vas service fee', () => {
+      const fee = BillingService.calculateVasFee([
+        { price: 100, quantity: 2 },
+        { price: 20, quantity: 3 }
       ]);
-      expect(fee).toBe(70);
+      expect(fee).toBe(260);
     });
   });
 });

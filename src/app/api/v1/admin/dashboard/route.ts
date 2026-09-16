@@ -11,10 +11,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(unauthorized('请先登录'));
     }
 
-    // 待审核数量（pending_exit 和 pending_bill 状态）
+    // 待审核数量（reviewing 和 topup_pending 状态）
     const pendingCount = await prisma.order.count({
       where: {
-        status: { in: ['pending_exit', 'pending_bill'] },
+        status: { in: ['reviewing', 'topup_pending'] },
       },
     });
 
@@ -38,12 +38,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // 活跃会员数（有未完成订单的会员）
+    // 活跃会员数（有进行中订单的会员）
     const activeMembers = await prisma.member.count({
       where: {
         orders: {
           some: {
-            status: { in: ['entering', 'pending_exit', 'pending_bill'] },
+            status: 'active',
           },
         },
       },

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const isActive = searchParams.get('is_active');
     
-    const where: any = {};
+    const where: Prisma.VasServiceWhereInput = {};
     if (isActive !== null) {
       where.isActive = isActive === 'true';
     }

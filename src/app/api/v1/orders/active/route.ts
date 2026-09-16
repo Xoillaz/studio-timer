@@ -13,15 +13,10 @@ export async function GET(request: NextRequest) {
     const order = await prisma.order.findFirst({
       where: {
         memberId,
-        status: 'entering',
+        status: 'active',
       },
       include: {
         venue: true,
-        orderEquipments: {
-          include: {
-            equipment: true,
-          },
-        },
       },
       orderBy: {
         entryTime: 'desc',
@@ -37,12 +32,7 @@ export async function GET(request: NextRequest) {
     const entryTime = new Date(order.entryTime!);
     const minutes = Math.floor((now.getTime() - entryTime.getTime()) / 60000);
     const hours = Math.ceil(minutes / 30) * 0.5; // 半小时起算
-    const baseAmount = hours * order.venue.pricePerHour;
-    const equipmentTotal = order.orderEquipments.reduce(
-      (sum, oe) => sum + (oe.equipment?.pricePerUse || 0),
-      0
-    );
-    const currentAmount = baseAmount + equipmentTotal;
+    const currentAmount = hours * order.venue.pricePerHour;
 
     return NextResponse.json({
       code: 0,

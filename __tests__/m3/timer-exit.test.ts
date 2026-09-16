@@ -8,6 +8,9 @@
  * - 申请离场
  * - 余额不足引导充值
  * - 充值后继续离场流程
+ * 
+ * 更新记录：
+ * - v1.5: 重构后订单状态简化为 pending → active → completed，离场直接从 active → completed
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -19,7 +22,7 @@ interface Venue {
   price_per_hour: number;
 }
 
-interface Equipment {
+interface VasService {
   id: number;
   name: string;
   price_per_use: number;
@@ -41,15 +44,7 @@ interface Order {
   updated_at: string;
 }
 
-type OrderStatus = 
-  | 'pending_entry' 
-  | 'entering' 
-  | 'partial_exit_pending' 
-  | 'pending_exit' 
-  | 'reviewing' 
-  | 'topup_pending' 
-  | 'rejected' 
-  | 'completed';
+type OrderStatus = 'pending' | 'active' | 'completed';
 
 interface Member {
   id: number;
@@ -63,14 +58,44 @@ let orders: Order[] = [];
 let orderIdCounter = 1;
 
 const venues: Venue[] = [
-  { id: 1, name: '场地A', price_per_hour: 50 },
-  { id: 2, name: '场地B', price_per_hour: 80 }
+  { id: 1, name: '实景棚', price_per_hour: 200 },
+  { id: 2, name: '绿幕棚', price_per_hour: 150 }
+];
+
+const vasServices: VasService[] = [
+  { id: 1, name: '专业摄影机', price_per_use: 100 },
+  { id: 2, name: '单反相机', price_per_use: 50 }
 ];
 
 // Mock API
 const mockApi = {
   getOrder: async (id: number): Promise<Order | null> => {
     return orders.find(o => o.id === id) || null;
+  },
+  
+  exit: async (orderId: number): Promise<Order> => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) throw new Error('订单不存在');
+    if (order.status !== 'active') throw new Error('订单状态不允许此操作');
+    
+    const exitTime = new Date();
+    const entryTime = new Date(order.entry_time!);
+    const durationMinutes = Math.floor((exitTime.getTime() - entryTime.getTime()) / 60000);
+    
+    // 计算费用
+    const venue = venues.find(v => v.id === order.venue_id)!;
+    const billableMinutes = Math.ceil(durationMinutes / 30) * 30;
+    const hours = billableMinutes / 60;
+    const baseAmount = Math.round(venue.price_per_hour * hours * 100) / 100;
+    
+    order.status = 'completed';
+    order.exit_time = exitTime.toISOString();
+    order.duration_minutes = durationMinutes;
+    order.base_amount = baseAmount;
+    order.final_amount = baseAmount + order.extra_amount;
+    order.updated_at = new Date().toISOString();
+    
+    return order;
   },
   
   updateOrder: async (id: number, data: Partial<Order>): Promise<Order> => {
@@ -81,20 +106,14 @@ const mockApi = {
   }
 };
 
-// Timer Service - 计时器逻辑
+// Timer Service
 class TimerService {
-  /**
-   * 计算已使用时长（分钟）
-   */
   static calculateDuration(entryTime: string): number {
     const entry = new Date(entryTime);
     const now = new Date();
     return Math.floor((now.getTime() - entry.getTime()) / 60000);
   }
   
-  /**
-   * 格式化时长为 HH:MM:SS
-   */
   static formatDuration(minutes: number): string {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -102,9 +121,6 @@ class TimerService {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
   
-  /**
-   * 格式化时长为 MM:SS (用于计时器显示)
-   */
   static formatTimer(entryTime: string): string {
     const duration = this.calculateDuration(entryTime);
     const mins = Math.floor(duration);
@@ -113,47 +129,36 @@ class TimerService {
   }
 }
 
-// Billing Service - 计费逻辑
+// Billing Service
 class BillingService {
-  /**
-   * 计算场地费用（按分钟，舍入规则：不足30分钟按30分钟计）
-   */
   static calculateVenueFee(pricePerHour: number, durationMinutes: number): number {
     if (durationMinutes <= 0) return 0;
-    
-    // 不足30分钟按30分钟计，超过30分钟按实际分钟数
     const billableMinutes = Math.ceil(durationMinutes / 30) * 30;
     const hours = billableMinutes / 60;
     return Math.round(pricePerHour * hours * 100) / 100;
   }
   
-  /**
-   * 计算预计费用（实时）
-   */
   static calculateEstimatedFee(
     venuePricePerHour: number, 
     entryTime: string,
-    baseEquipmentFee: number = 0
+    baseVasFee: number = 0
   ): number {
     const durationMinutes = TimerService.calculateDuration(entryTime);
     const venueFee = this.calculateVenueFee(venuePricePerHour, durationMinutes);
-    return Math.round((venueFee + baseEquipmentFee) * 100) / 100;
+    return Math.round((venueFee + baseVasFee) * 100) / 100;
   }
   
-  /**
-   * 计算离场费用（最终结算）
-   */
   static calculateExitFee(
     venuePricePerHour: number, 
     durationMinutes: number,
-    baseEquipmentFee: number = 0
+    baseVasFee: number = 0
   ): number {
     const venueFee = this.calculateVenueFee(venuePricePerHour, durationMinutes);
-    return Math.round((venueFee + baseEquipmentFee) * 100) / 100;
+    return Math.round((venueFee + baseVasFee) * 100) / 100;
   }
 }
 
-// Exit Service - 离场管理
+// Exit Service
 class ExitService {
   private member: Member;
   private order: Order;
@@ -164,18 +169,19 @@ class ExitService {
   }
   
   /**
-   * 申请离场
-   * T3-6: 申请离场
+   * 申请离场（结束计时）
+   * v1.5 重构：直接从 active → completed，自动扣款
    */
   async applyForExit(): Promise<{ success: boolean; error?: string }> {
-    if (this.order.status !== 'entering') {
-      return { success: false, error: '订单状态不允许离场' };
+    if (this.order.status !== 'active') {
+      return { success: false, error: '订单状态不允许此操作' };
     }
     
     // 计算当前费用
     const durationMinutes = TimerService.calculateDuration(this.order.entry_time!);
+    const venue = venues.find(v => v.id === this.order.venue_id)!;
     const estimatedFee = BillingService.calculateExitFee(
-      venues.find(v => v.id === this.order.venue_id)!.price_per_hour,
+      venue.price_per_hour,
       durationMinutes,
       this.order.base_amount
     );
@@ -188,23 +194,17 @@ class ExitService {
       };
     }
     
-    // 更新订单状态
-    await mockApi.updateOrder(this.order.id, {
-      status: 'pending_exit',
-      exit_time: new Date().toISOString()
-    });
+    // 执行离场
+    await mockApi.exit(this.order.id);
     
     return { success: true };
   }
   
-  /**
-   * 检查余额是否足够支付当前费用
-   * T3-7: 余额不足引导充值
-   */
   checkBalanceForExit(): { sufficient: boolean; currentFee: number; deficit: number } {
     const durationMinutes = TimerService.calculateDuration(this.order.entry_time!);
+    const venue = venues.find(v => v.id === this.order.venue_id)!;
     const currentFee = BillingService.calculateExitFee(
-      venues.find(v => v.id === this.order.venue_id)!.price_per_hour,
+      venue.price_per_hour,
       durationMinutes,
       this.order.base_amount
     );
@@ -216,28 +216,31 @@ class ExitService {
     };
   }
   
-  /**
-   * 获取当前订单状态
-   */
   getOrderStatus(): OrderStatus {
     return this.order.status;
   }
 }
 
-// 创建测试订单的辅助函数
-function createTestOrder(memberId: number, venueId: number, baseAmount: number = 0): Order {
+// Helper function
+function createTestOrder(
+  memberId: number, 
+  venueId: number, 
+  status: OrderStatus,
+  baseAmount: number = 0,
+  entryMinutesAgo: number = 120
+): Order {
   const order: Order = {
     id: orderIdCounter++,
     order_no: `ORD${Date.now()}`,
     member_id: memberId,
     venue_id: venueId,
-    status: 'entering',
-    entry_time: new Date().toISOString(),
-    exit_time: null,
-    duration_minutes: 0,
+    status,
+    entry_time: status !== 'pending' ? new Date(Date.now() - entryMinutesAgo * 60000).toISOString() : null,
+    exit_time: status === 'completed' ? new Date().toISOString() : null,
+    duration_minutes: entryMinutesAgo,
     base_amount: baseAmount,
     extra_amount: 0,
-    final_amount: 0,
+    final_amount: baseAmount,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -253,149 +256,111 @@ describe('M3 会话与计时 - 计时器与离场', () => {
   
   describe('T3-4: 计时器实时更新', () => {
     it('should calculate duration in minutes', () => {
-      // Arrange - 模拟入场时间 30 秒前
       const entryTime = new Date(Date.now() - 30000).toISOString();
       
-      // Act
       const duration = TimerService.calculateDuration(entryTime);
       
-      // Assert
       expect(duration).toBeGreaterThanOrEqual(0);
       expect(duration).toBeLessThanOrEqual(1);
     });
     
     it('should format duration as MM:SS', () => {
-      // Arrange - 入场 90秒 (1分30秒)
-      const entryTime = new Date(Date.now() - 90 * 1000).toISOString();
+      const entryTime = new Date(Date.now() - 90000).toISOString();
       
-      // Act
       const formatted = TimerService.formatTimer(entryTime);
       
-      // Assert - 90秒 = 1.5分钟，向下取整为1分钟，显示 01:00
       expect(formatted).toMatch(/^\d{2}:\d{2}$/);
-      expect(formatted).toBe('01:00');
+      expect(formatted).toBe('01:00'); // 显示分:秒，只显示分钟部分
     });
     
     it('should update timer in real-time', () => {
-      // Arrange
-      const entryTime = new Date(Date.now() - 60000).toISOString(); // 1分钟前
+      const entryTime = new Date(Date.now() - 60000).toISOString();
       
-      // Act - 1秒后再次计算
       const duration1 = TimerService.calculateDuration(entryTime);
       
-      // Assert - 计时器应该实时更新
       expect(duration1).toBeGreaterThanOrEqual(1);
     });
   });
   
   describe('T3-5: 预计费用实时计算', () => {
     it('should calculate real-time estimated fee after 1 hour', () => {
-      // Arrange - 模拟入场 1 小时后
       const entryTime = new Date(Date.now() - 3600000).toISOString();
-      const venuePrice = 50; // ¥50/h
+      const venuePrice = 200;
       
-      // Act
       const estimatedFee = BillingService.calculateEstimatedFee(venuePrice, entryTime);
       
-      // Assert - 1小时 = ¥50
-      expect(estimatedFee).toBe(50);
+      expect(estimatedFee).toBe(200);
     });
     
     it('should calculate real-time estimated fee after 2.5 hours', () => {
-      // Arrange - 模拟入场 2.5 小时后
-      const entryTime = new Date(Date.now() - 150 * 60000).toISOString(); // 150分钟
-      const venuePrice = 50;
+      const entryTime = new Date(Date.now() - 150 * 60000).toISOString();
+      const venuePrice = 200;
       
-      // Act
       const estimatedFee = BillingService.calculateEstimatedFee(venuePrice, entryTime);
       
-      // Assert - 150分钟 = 5个30分钟单元 = 2.5小时 = ¥125
-      expect(estimatedFee).toBe(125);
+      // 2.5小时 = 150分钟，向上舍入到 5个半小时单元 = 2.5小时 = ¥500
+      expect(estimatedFee).toBe(500);
     });
     
-    it('should include equipment fee in estimated fee', () => {
-      // Arrange
+    it('should include vas service fee in estimated fee', () => {
       const entryTime = new Date(Date.now() - 3600000).toISOString();
-      const venuePrice = 50;
-      const equipmentFee = 70;
+      const venuePrice = 200;
+      const vasFee = 150;
       
-      // Act
-      const estimatedFee = BillingService.calculateEstimatedFee(venuePrice, entryTime, equipmentFee);
+      const estimatedFee = BillingService.calculateEstimatedFee(venuePrice, entryTime, vasFee);
       
-      // Assert - ¥50 + ¥70 = ¥120
-      expect(estimatedFee).toBe(120);
-    });
-    
-    it('should calculate correct fee for 场地A 2.5小时', () => {
-      // 验收标准：150分钟 = 5个30分钟单元 = 2.5小时 = ¥50 × 2.5 = ¥125
-      const fee = BillingService.calculateVenueFee(50, 150);
-      expect(fee).toBe(125);
+      // ¥200 + ¥150 = ¥350
+      expect(estimatedFee).toBe(350);
     });
   });
   
   describe('T3-6: 申请离场', () => {
     it('should apply for exit successfully', async () => {
-      // Arrange
       const member = { id: 1, name: '张三', phone: '13800138000', balance: 500 };
-      const order = createTestOrder(1, 1, 0); // 场地A ¥50/h
+      const order = createTestOrder(1, 1, 'active', 0, 120);
       const exitService = new ExitService(member, order);
       
-      // 等待至少1分钟以产生费用
-      order.entry_time = new Date(Date.now() - 60000).toISOString();
-      
-      // Act
       const result = await exitService.applyForExit();
       
-      // Assert
       expect(result.success).toBe(true);
-      // 订单状态应变为 pending_exit
       const updatedOrder = orders.find(o => o.id === order.id);
-      expect(updatedOrder!.status).toBe('pending_exit');
+      expect(updatedOrder!.status).toBe('completed');
     });
     
-    it('should show waiting for review message after exit application', async () => {
-      // Arrange
+    it('should calculate duration and fees on exit', async () => {
       const member = { id: 1, name: '张三', phone: '13800138000', balance: 500 };
-      const order = createTestOrder(1, 1, 0);
-      order.entry_time = new Date(Date.now() - 7200000).toISOString(); // 2小时
+      const order = createTestOrder(1, 1, 'active', 0, 60); // 1小时
       const exitService = new ExitService(member, order);
       
-      // Act
       await exitService.applyForExit();
       
-      // Assert - 验证状态
-      expect(exitService.getOrderStatus()).toBe('pending_exit');
+      const updatedOrder = orders.find(o => o.id === order.id)!;
+      expect(updatedOrder.duration_minutes).toBeGreaterThan(0);
+      expect(updatedOrder.base_amount).toBe(200); // ¥200/h * 1h
+      expect(updatedOrder.final_amount).toBe(200);
     });
   });
   
   describe('T3-7: 余额不足引导充值', () => {
     it('should show insufficient balance message when applying for exit', () => {
-      // Arrange - 余额 ¥50，预账单 ¥100
-      const member = { id: 1, name: '张三', phone: '13800138000', balance: 50 };
-      const order = createTestOrder(1, 1, 0);
-      order.entry_time = new Date(Date.now() - 7200000).toISOString(); // 2小时 = ¥100
+      const member = { id: 1, name: '张三', phone: '13800138000', balance: 100 };
+      const order = createTestOrder(1, 1, 'active', 0, 120); // 2小时 = ¥400
       const exitService = new ExitService(member, order);
       
-      // Act
       const balanceCheck = exitService.checkBalanceForExit();
       
-      // Assert
       expect(balanceCheck.sufficient).toBe(false);
-      expect(balanceCheck.currentFee).toBe(100);
-      expect(balanceCheck.deficit).toBe(50);
+      expect(balanceCheck.currentFee).toBe(400);
+      expect(balanceCheck.deficit).toBe(300);
     });
     
     it('should show topup button when balance insufficient', async () => {
-      // Arrange
-      const member = { id: 1, name: '张三', phone: '13800138000', balance: 50 };
-      const order = createTestOrder(1, 1, 0);
-      order.entry_time = new Date(Date.now() - 7200000).toISOString();
+      const member = { id: 1, name: '张三', phone: '13800138000', balance: 100 };
+      const order = createTestOrder(1, 1, 'active', 0, 120);
       const exitService = new ExitService(member, order);
       
-      // Act
       const result = await exitService.applyForExit();
       
-      // Assert - 应该返回余额不足错误
       expect(result.success).toBe(false);
       expect(result.error).toContain('余额不足');
       expect(result.error).toContain('充值');
@@ -404,10 +369,8 @@ describe('M3 会话与计时 - 计时器与离场', () => {
   
   describe('T3-8: 充值后继续离场流程', () => {
     it('should proceed to exit after topup', async () => {
-      // Arrange - 初始余额不足
-      const member = { id: 1, name: '张三', phone: '13800138000', balance: 50 };
-      const order = createTestOrder(1, 1, 0);
-      order.entry_time = new Date(Date.now() - 7200000).toISOString(); // 2小时 = ¥100
+      const member = { id: 1, name: '张三', phone: '13800138000', balance: 100 };
+      const order = createTestOrder(1, 1, 'active', 0, 120); // ¥400
       const exitService = new ExitService(member, order);
       
       // 第一次申请 - 余额不足
@@ -415,49 +378,37 @@ describe('M3 会话与计时 - 计时器与离场', () => {
       expect(result.success).toBe(false);
       
       // 模拟充值
-      member.balance += 100; // 充值 ¥100 → 余额 ¥150
+      member.balance += 400;
       
-      // 第二次申请 - 余额足够
+      // 第二次申请 - 成功
       result = await exitService.applyForExit();
       
-      // Assert
       expect(result.success).toBe(true);
       const updatedOrder = orders.find(o => o.id === order.id);
-      expect(updatedOrder!.status).toBe('pending_exit');
+      expect(updatedOrder!.status).toBe('completed');
     });
     
-    it('should show waiting for review after successful exit application', async () => {
-      // Arrange
+    it('should show completed status after successful exit', async () => {
       const member = { id: 1, name: '张三', phone: '13800138000', balance: 500 };
-      const order = createTestOrder(1, 1, 0);
-      order.entry_time = new Date(Date.now() - 7200000).toISOString();
+      const order = createTestOrder(1, 1, 'active', 0, 60);
       const exitService = new ExitService(member, order);
       
-      // Act
       await exitService.applyForExit();
       
-      // Assert
-      expect(exitService.getOrderStatus()).toBe('pending_exit');
+      expect(exitService.getOrderStatus()).toBe('completed');
     });
   });
   
   describe('计费验收测试', () => {
-    it('场地A 2.5小时 = ¥50 × 2.5 = ¥125', () => {
-      // 验收标准：150分钟 = 5个30分钟单元 = 2.5小时 = ¥125
-      const fee = BillingService.calculateVenueFee(50, 150);
-      expect(fee).toBe(125);
+    it('实景棚 2.5小时 = ¥200 × 2.5 = ¥500 (实际按舍入)', () => {
+      const fee = BillingService.calculateVenueFee(200, 150);
+      expect(fee).toBe(500); // 150分钟 → 5个半小时单元 → ¥500
     });
     
-    it('场地A 3小时 + 设备B 2次 = ¥50 × 3 + ¥20 × 2 = ¥190', () => {
-      const venueFee = BillingService.calculateVenueFee(50, 180); // 3小时
-      const equipmentFee = 20 * 2;
-      expect(venueFee + equipmentFee).toBe(190);
-    });
-    
-    it('基础费用 ¥100 + 额外¥50 = ¥150', () => {
-      const baseAmount = 100;
-      const extraAmount = 50;
-      expect(baseAmount + extraAmount).toBe(150);
+    it('实景棚 3小时 + 增值服务 = ¥200 × 3 + ¥150 = ¥750', () => {
+      const venueFee = BillingService.calculateVenueFee(200, 180);
+      const vasFee = 150;
+      expect(venueFee + vasFee).toBe(750);
     });
   });
 });

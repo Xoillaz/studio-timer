@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status'); // pending_exit, pending_bill
+    const status = searchParams.get('status'); // reviewing, topup_pending
 
     const where: Record<string, unknown> = {};
     if (status) {
       where.status = status;
     } else {
-      where.status = { in: ['pending_exit', 'pending_bill'] };
+      where.status = { in: ['reviewing', 'topup_pending'] };
     }
 
     const orders = await prisma.order.findMany({
@@ -28,9 +28,6 @@ export async function GET(request: NextRequest) {
           select: { id: true, name: true, phone: true },
         },
         venue: true,
-        orderEquipments: {
-          include: { equipment: true },
-        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -39,18 +36,13 @@ export async function GET(request: NextRequest) {
     const ordersWithCurrentAmount = await Promise.all(
       orders.map(async (order) => {
         let currentAmount = 0;
-        if (order.entryTime && order.status === 'entering') {
+        if (order.entryTime && order.status === 'active') {
           const minutes = Math.floor(
             (Date.now() - new Date(order.entryTime).getTime()) / 60000
           );
           const billingUnits = Math.ceil(minutes / 30);
           currentAmount = billingUnits * (order.venue.pricePerHour / 2);
         }
-
-        const equipmentTotal = order.orderEquipments.reduce(
-          (sum, oe) => sum + oe.subtotal,
-          0
-        );
 
         return {
           id: order.id,
@@ -67,8 +59,7 @@ export async function GET(request: NextRequest) {
           baseAmount: order.baseAmount,
           extraAmount: order.extraAmount,
           finalAmount: order.finalAmount,
-          equipmentTotal,
-          currentAmount: Math.round((currentAmount + equipmentTotal) * 100) / 100,
+          currentAmount: Math.round(currentAmount * 100) / 100,
           createdAt: order.createdAt.toISOString(),
         };
       })

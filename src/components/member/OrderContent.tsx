@@ -6,7 +6,6 @@ import styles from './OrderContent.module.css';
 interface OrderDetailContentProps {
   order: OrderDetail;
   currentAmount?: number;
-  equipmentTotal?: number;
 }
 
 function formatDuration(minutes: number): string {
@@ -19,9 +18,8 @@ function formatDuration(minutes: number): string {
   return `${mins}分钟`;
 }
 
-export function OrderDetailContent({ order, currentAmount = 0, equipmentTotal = 0 }: OrderDetailContentProps) {
+export function OrderDetailContent({ order, currentAmount = 0 }: OrderDetailContentProps) {
   const baseAmount = currentAmount || order.baseAmount || 0;
-  const eqTotal = equipmentTotal || order.equipmentTotal || 0;
   const vasTotal = order.vasServiceTotal || 0;
 
   return (
@@ -52,19 +50,6 @@ export function OrderDetailContent({ order, currentAmount = 0, equipmentTotal = 
           <span className={styles.value}>¥{order.venuePricePerHour}/小时</span>
         </div>
       </div>
-
-      {/* 设备信息 */}
-      {order.equipments && order.equipments.length > 0 && (
-        <div className={styles.infoCard}>
-          <h3 className={styles.cardTitle}>设备</h3>
-          {order.equipments.map((eq, index) => (
-            <div key={index} className={styles.infoRow}>
-              <span className={styles.label}>{eq.name} × {eq.quantity}</span>
-              <span className={styles.value}>¥{eq.subtotal}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* 增值服务信息 */}
       {order.vasServices && order.vasServices.length > 0 && (
@@ -107,12 +92,6 @@ export function OrderDetailContent({ order, currentAmount = 0, equipmentTotal = 
           <span className={styles.label}>场地费</span>
           <span className={styles.value}>¥{baseAmount.toFixed(2)}</span>
         </div>
-        {eqTotal > 0 && (
-          <div className={styles.infoRow}>
-            <span className={styles.label}>设备费</span>
-            <span className={styles.value}>¥{eqTotal.toFixed(2)}</span>
-          </div>
-        )}
         {vasTotal > 0 && (
           <div className={styles.infoRow}>
             <span className={styles.label}>增值服务费</span>
@@ -127,7 +106,7 @@ export function OrderDetailContent({ order, currentAmount = 0, equipmentTotal = 
         )}
         <div className={`${styles.infoRow} ${styles.totalRow}`}>
           <span className={styles.label}>合计</span>
-          <span className={`${styles.value} ${styles.totalValue}`}>¥{(baseAmount + eqTotal + order.extraAmount).toFixed(2)}</span>
+          <span className={`${styles.value} ${styles.totalValue}`}>¥{(baseAmount + vasTotal + order.extraAmount).toFixed(2)}</span>
         </div>
       </div>
 

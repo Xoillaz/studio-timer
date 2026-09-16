@@ -104,7 +104,7 @@ export default function MemberHomePage() {
 
     if (data.code === 0) {
         // 自动调用入场接口，开始计时
-        const entryRes = await fetch('/api/v1/orders/entry', {
+        const entryRes = await fetch(`/api/v1/orders/${data.data.orderId}/entry`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

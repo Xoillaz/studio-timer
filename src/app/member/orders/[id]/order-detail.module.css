@@ -103,7 +103,7 @@
   color: var(--color-text-pending);
 }
 
-.statusBadge.entering {
+.statusBadge.active {
   background: var(--color-bg-entering);
   color: var(--color-text-entering);
 }

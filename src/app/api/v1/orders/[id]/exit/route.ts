@@ -4,24 +4,27 @@ import { success, unauthorized, error, ErrorCodes } from '@/lib/api-response';
 import { getMemberIdFromToken } from '@/lib/auth';
 
 // 申请离场
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const memberId = getMemberIdFromToken(request);
     if (!memberId) {
       return NextResponse.json(unauthorized('请先登录'));
     }
 
-    const body = await request.json();
-    const { orderId } = body;
+    const { id: orderId } = await params;
+    const orderIdNum = parseInt(orderId);
 
-    if (!orderId) {
+    if (!orderId || isNaN(orderIdNum)) {
       return NextResponse.json(error(ErrorCodes.PARAM_ERROR, '缺少订单ID'));
     }
 
     // 查询订单
     const order = await prisma.order.findFirst({
       where: {
-        id: orderId,
+        id: orderIdNum,
         memberId,
       },
       include: {
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(error(ErrorCodes.ORDER_NOT_FOUND, '订单不存在'));
     }
 
-    if (order.status !== 'entering') {
+    if (order.status !== 'active') {
       return NextResponse.json(error(ErrorCodes.ORDER_STATUS_ERROR, '订单状态不允许离场'));
     }
 
@@ -82,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     // 更新订单状态为已完成（用户结束计时直接扣款完成）
     const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
+      where: { id: orderIdNum },
       data: {
         status: 'completed',
         exitTime,

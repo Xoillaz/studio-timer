@@ -1,15 +1,9 @@
-export interface OrderEquipment {
-  name: string;
-  pricePerUse: number;
-  quantity: number;
-  subtotal: number;
-}
-
 export interface VasServiceItem {
   name: string;
   pricePerUse: number;
   quantity: number;
   subtotal: number;
+  createdAt?: string;
 }
 
 export interface TimelineItem {
@@ -30,8 +24,6 @@ export interface OrderDetail {
   baseAmount: number;
   extraAmount: number;
   finalAmount: number;
-  equipmentTotal: number;
-  equipments: OrderEquipment[];
   vasServiceTotal: number;
   vasServices: VasServiceItem[];
   leaderName: string | null;

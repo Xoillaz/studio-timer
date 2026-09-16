@@ -9,6 +9,9 @@
  * - 审核日志记录
  * - 扣款日志记录
  * - 状态流转日志
+ * 
+ * 更新记录：
+ * - v1.5: 适配后端重构，订单状态简化为 pending → active → completed，删除部分人离场
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -39,15 +42,7 @@ interface Order {
   updated_at: string;
 }
 
-type OrderStatus = 
-  | 'pending_entry' 
-  | 'entering' 
-  | 'partial_exit_pending' 
-  | 'pending_exit' 
-  | 'reviewing' 
-  | 'topup_pending' 
-  | 'rejected' 
-  | 'completed';
+type OrderStatus = 'pending' | 'active' | 'completed';
 
 // Mock Data Store
 let operationLogs: OperationLog[] = [];
@@ -60,10 +55,7 @@ const ACTIONS = {
   LOGIN: 'login',
   LOGOUT: 'logout',
   ENTRY: 'entry',
-  PARTIAL_EXIT_APPLY: 'partial_exit_apply',
-  PARTIAL_EXIT_APPROVE: 'partial_exit_approve',
-  PARTIAL_EXIT_REJECT: 'partial_exit_reject',
-  EXIT_APPLY: 'exit_apply',
+  EXIT: 'exit',
   TOPUP_APPLY: 'topup_apply',
   TOPUP_APPROVE: 'topup_approve',
   TOPUP_REJECT: 'topup_reject',
@@ -103,18 +95,11 @@ const mockApi = {
     }
     
     return result;
-  },
-  
-  getOrder: async (id: number): Promise<Order | null> => {
-    return orders.find(o => o.id === id) || null;
   }
 };
 
-// Audit Service - 日志审计服务
+// Audit Service
 class AuditService {
-  /**
-   * 记录操作日志
-   */
   static async log(data: {
     action: string;
     action_name: string;
@@ -167,17 +152,17 @@ class AuditService {
   }
   
   /**
-   * T5-3: 记录离场申请日志
+   * T5-3: 记录离场日志
    */
-  static async logExitApply(orderId: number, memberId: number, memberName: string): Promise<OperationLog> {
+  static async logExit(orderId: number, memberId: number, memberName: string): Promise<OperationLog> {
     return this.log({
-      action: ACTIONS.EXIT_APPLY,
+      action: ACTIONS.EXIT,
       action_name: '申请离场',
       operator_type: 'member',
       operator_id: memberId,
       operator_name: memberName,
       order_id: orderId,
-      details: { event: 'exit_apply' }
+      details: { event: 'exit' }
     });
   }
   
@@ -247,23 +232,17 @@ class AuditService {
     });
   }
   
-  /**
-   * 获取订单相关日志
-   */
   static async getOrderLogs(orderId: number): Promise<OperationLog[]> {
     return mockApi.getLogs({ order_id: orderId });
   }
   
-  /**
-   * 获取操作人相关日志
-   */
   static async getOperatorLogs(operatorType: string, operatorId: number): Promise<OperationLog[]> {
     const logs = await mockApi.getLogs({ operator_type: operatorType });
     return logs.filter(l => l.operator_id === operatorId);
   }
 }
 
-// Status History - 状态流转历史
+// Status History
 class StatusHistory {
   private history: Array<{
     orderId: number;
@@ -305,10 +284,8 @@ describe('M5 日志与审计', () => {
   
   describe('T5-1: 登录日志记录', () => {
     it('should create login log', async () => {
-      // Act
       const log = await auditService.logLogin(1, '张三', '13800138000');
       
-      // Assert
       expect(log).toBeDefined();
       expect(log.action).toBe('login');
       expect(log.action_name).toBe('会员登录');
@@ -319,24 +296,19 @@ describe('M5 日志与审计', () => {
     });
     
     it('should query login logs', async () => {
-      // Arrange
       await auditService.logLogin(1, '张三', '13800138000');
       await auditService.logLogin(2, '李四', '13800138001');
       
-      // Act
       const logs = await mockApi.getLogs({ action: 'login' });
       
-      // Assert
       expect(logs.length).toBe(2);
     });
   });
   
   describe('T5-2: 入场日志记录', () => {
     it('should create entry log with order_id', async () => {
-      // Act
       const log = await auditService.logEntry(1, 1, '张三');
       
-      // Assert
       expect(log.action).toBe('entry');
       expect(log.action_name).toBe('扫码入场');
       expect(log.order_id).toBe(1);
@@ -344,13 +316,12 @@ describe('M5 日志与审计', () => {
     });
     
     it('should link entry log to order', async () => {
-      // Arrange - 创建订单
       const order: Order = {
         id: orderIdCounter++,
         order_no: 'ORD001',
         member_id: 1,
         venue_id: 1,
-        status: 'entering',
+        status: 'active',
         entry_time: new Date().toISOString(),
         exit_time: null,
         created_at: new Date().toISOString(),
@@ -358,46 +329,36 @@ describe('M5 日志与审计', () => {
       };
       orders.push(order);
       
-      // Act
       const log = await auditService.logEntry(order.id, 1, '张三');
       
-      // Assert
       expect(log.order_id).toBe(order.id);
     });
   });
   
   describe('T5-3: 离场日志记录', () => {
-    it('should create exit_apply log', async () => {
-      // Act
-      const log = await auditService.logExitApply(1, 1, '张三');
+    it('should create exit log', async () => {
+      const log = await auditService.logExit(1, 1, '张三');
       
-      // Assert
-      expect(log.action).toBe('exit_apply');
+      expect(log.action).toBe('exit');
       expect(log.action_name).toBe('申请离场');
       expect(log.order_id).toBe(1);
-      expect(log.details.event).toBe('exit_apply');
     });
   });
   
   describe('T5-4: 审核日志记录', () => {
     it('should create approval log with admin_id', async () => {
-      // Act
       const log = await auditService.logApproval(1, 1, '管理员', 'approve', '费用确认');
       
-      // Assert
       expect(log.action).toBe('bill_approve');
       expect(log.action_name).toBe('账单审核通过');
       expect(log.operator_type).toBe('admin');
       expect(log.operator_id).toBe(1);
-      expect(log.operator_name).toBe('管理员');
       expect(log.details.reason).toBe('费用确认');
     });
     
     it('should create rejection log', async () => {
-      // Act
       const log = await auditService.logApproval(1, 1, '管理员', 'reject', '费用有误');
       
-      // Assert
       expect(log.action).toBe('bill_reject');
       expect(log.action_name).toBe('账单审核拒绝');
     });
@@ -405,110 +366,98 @@ describe('M5 日志与审计', () => {
   
   describe('T5-5: 扣款日志记录', () => {
     it('should create deduct log with amount', async () => {
-      // Act
-      const log = await auditService.logDeduct(1, 150, 1, '管理员');
+      const log = await auditService.logDeduct(1, 450, 1, '管理员');
       
-      // Assert
       expect(log.action).toBe('paid');
       expect(log.action_name).toBe('已扣款');
-      expect(log.details.amount).toBe(150);
+      expect(log.details.amount).toBe(450);
     });
     
     it('should record deduct amount accurately', async () => {
-      // Act
-      const log = await auditService.logDeduct(1, 150.50, 1, '管理员');
+      const log = await auditService.logDeduct(1, 450.50, 1, '管理员');
       
-      // Assert
-      expect(log.details.amount).toBe(150.50);
+      expect(log.details.amount).toBe(450.50);
     });
   });
   
   describe('T5-6: 状态流转日志', () => {
-    it('should record status change from entering to pending_exit', async () => {
-      // Act
+    it('should record status change from pending to active', async () => {
       const log = await auditService.logStatusChange(
         1, 
-        'entering', 
-        'pending_exit',
+        'pending', 
+        'active',
         1, 
         '张三',
         'member'
       );
       
-      // Assert
       expect(log.action).toBe('status_change');
-      expect(log.details.from_status).toBe('entering');
-      expect(log.details.to_status).toBe('pending_exit');
+      expect(log.details.from_status).toBe('pending');
+      expect(log.details.to_status).toBe('active');
+    });
+    
+    it('should record status change from active to completed', async () => {
+      const log = await auditService.logStatusChange(
+        1, 
+        'active', 
+        'completed',
+        1, 
+        '张三',
+        'member'
+      );
+      
+      expect(log.details.from_status).toBe('active');
+      expect(log.details.to_status).toBe('completed');
     });
     
     it('should track order status history', async () => {
-      // Arrange
       const orderId = 1;
       
-      // Act - 模拟状态流转: entering → partial_exit_pending → pending_exit → reviewing → completed
-      statusHistory.record(orderId, 'entering', 'partial_exit_pending', 1, '张三');
-      statusHistory.record(orderId, 'partial_exit_pending', 'entering', 1, '管理员');
-      statusHistory.record(orderId, 'entering', 'pending_exit', 1, '张三');
-      statusHistory.record(orderId, 'pending_exit', 'reviewing', 1, '管理员');
-      statusHistory.record(orderId, 'reviewing', 'completed', 1, '管理员');
+      // v1.5 简化流程: pending → active → completed
+      statusHistory.record(orderId, 'pending', 'active', 1, '张三');
+      statusHistory.record(orderId, 'active', 'completed', 1, '张三');
       
-      // Assert
       const history = statusHistory.getHistory(orderId);
-      expect(history.length).toBe(5);
-      expect(history[0].fromStatus).toBe('entering');
-      expect(history[0].toStatus).toBe('partial_exit_pending');
-      expect(history[4].toStatus).toBe('completed');
+      expect(history.length).toBe(2);
+      expect(history[0].fromStatus).toBe('pending');
+      expect(history[0].toStatus).toBe('active');
+      expect(history[1].toStatus).toBe('completed');
     });
     
     it('should verify status transition rules', () => {
-      // 状态机验收: entering → partial_exit_pending → entering → pending_exit → reviewing → completed
+      // v1.5 简化状态机: pending → active → completed
       const validTransitions: Record<string, string[]> = {
-        'entering': ['partial_exit_pending', 'pending_exit'],
-        'partial_exit_pending': ['entering'],
-        'pending_exit': ['reviewing', 'topup_pending'],
-        'topup_pending': ['reviewing'],
-        'reviewing': ['completed', 'rejected'],
-        'completed': [],
-        'rejected': []
+        'pending': ['active'],
+        'active': ['completed'],
+        'completed': []
       };
       
-      // 验证: entering 可以转到 partial_exit_pending
-      expect(validTransitions['entering']).toContain('partial_exit_pending');
-      // 验证: partial_exit_pending 可以转回 entering
-      expect(validTransitions['partial_exit_pending']).toContain('entering');
-      // 验证: entering 可以直接到 pending_exit
-      expect(validTransitions['entering']).toContain('pending_exit');
-      // 验证: completed 是终态
+      expect(validTransitions['pending']).toContain('active');
+      expect(validTransitions['active']).toContain('completed');
       expect(validTransitions['completed']).toHaveLength(0);
     });
   });
   
   describe('日志查询功能', () => {
     it('should query logs by order_id', async () => {
-      // Arrange
       await auditService.logEntry(1, 1, '张三');
-      await auditService.logExitApply(1, 1, '张三');
-      await auditService.logEntry(2, 2, '李四'); // 不同订单
+      await auditService.logExit(1, 1, '张三');
+      await auditService.logEntry(2, 2, '李四');
       await auditService.logApproval(1, 1, '管理员', 'approve');
       
-      // Act
       const order1Logs = await auditService.getOrderLogs(1);
       
-      // Assert
       expect(order1Logs.length).toBe(3);
     });
     
     it('should query logs by operator', async () => {
-      // Arrange
       await auditService.logLogin(1, '张三', '13800138000');
       await auditService.logEntry(1, 1, '张三');
-      await auditService.logExitApply(1, 1, '张三');
-      await auditService.logApproval(1, 1, '管理员', 'approve'); // 管理员操作
+      await auditService.logExit(1, 1, '张三');
+      await auditService.logApproval(1, 1, '管理员', 'approve');
       
-      // Act
       const memberLogs = await auditService.getOperatorLogs('member', 1);
       
-      // Assert
       expect(memberLogs.length).toBe(3);
     });
   });

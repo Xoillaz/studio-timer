@@ -1,22 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
 import Modal from '@/components/ui/Modal/Modal';
-import { Button, Icon } from '@/components/ui';
-import { OrderDetailContent, OrderStatusContent } from '@/components/member/OrderContent';
+import { Button } from '@/components/ui';
+import { OrderStatusContent } from '@/components/member/OrderContent';
 import { OrderDetail } from '@/components/member/types';
 import styles from './active.module.css';
 
-interface EquipmentItem {
+// 增值服务项
+interface VasServiceItem {
   id: number;
   name: string;
   pricePerUse: number;
-  category: string;
+  quantity: number;
+  category?: string;
   selectedCount: number;
   remark?: string;
+  createdAt?: string;
 }
 
 function ActivePageContent() {
@@ -27,9 +30,9 @@ function ActivePageContent() {
   
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [serviceItems, setServiceItems] = useState<EquipmentItem[]>([]);
+  const [serviceItems, setServiceItems] = useState<VasServiceItem[]>([]);
   // 固化的增值服务项（已下单，还未结算）
-  const [fixedItems, setFixedItems] = useState<EquipmentItem[]>([]);
+  const [fixedItems, setFixedItems] = useState<VasServiceItem[]>([]);
   const [showEndModal, setShowEndModal] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [showInsufficientBalance, setShowInsufficientBalance] = useState(false);
@@ -62,7 +65,7 @@ function ActivePageContent() {
       const res = await fetch('/api/v1/vasServices?is_active=true');
       const data = await res.json();
       if (data.code === 0 && data.data.items) {
-        setServiceItems(data.data.items.map((item: any) => ({
+        setServiceItems(data.data.items.map((item: VasServiceItem) => ({
           ...item,
           selectedCount: 0,
         })));
@@ -85,7 +88,7 @@ function ActivePageContent() {
         // 将已下单的增值服务同步到 fixedItems
         const existingVas = data.data.vasServices || [];
         if (existingVas.length > 0) {
-          setFixedItems(existingVas.map((v: any) => ({
+          setFixedItems(existingVas.map((v: VasServiceItem) => ({
             id: v.id,
             name: v.name,
             pricePerUse: v.pricePerUse,
@@ -102,8 +105,8 @@ function ActivePageContent() {
         // 增值服务 - 按下单时间分组显示
         if (data.data.vasServices && data.data.vasServices.length > 0) {
           // 按秒级时间分组（去掉毫秒）
-          const grouped: { [key: string]: any[] } = {};
-          data.data.vasServices.forEach((v: any) => {
+          const grouped: { [key: string]: VasServiceItem[] } = {};
+          data.data.vasServices.forEach((v: VasServiceItem) => {
             // 按秒级时间分组（取前19字符：去掉毫秒）
             const timeKey = v.createdAt ? v.createdAt.substring(0, 19) : 'unknown';
             if (!grouped[timeKey]) grouped[timeKey] = [];
@@ -111,8 +114,8 @@ function ActivePageContent() {
           });
           
           // 每组生成一条时间轴记录
-          Object.entries(grouped).forEach(([time, items]: [string, any[]]) => {
-            const details = items.map(v => `${v.name}×${v.quantity}`).join('、');
+          Object.entries(grouped).forEach(([time, items]) => {
+            const details = items.map((v: VasServiceItem) => `${v.name}×${v.quantity}`).join('、');
             timeline.push({
               action: 'vas_added',
               time: time !== 'unknown' ? time : data.data.entryTime,
@@ -165,7 +168,7 @@ function ActivePageContent() {
   }, [fetchVasServices]);
 
   useEffect(() => {
-    if (!order || order.status !== 'entering') return;
+    if (!order || order.status !== 'active') return;
 
     // 启动计时器前，先根据入场时间计算已过秒数
     if (order.entryTime) {
@@ -208,13 +211,7 @@ function ActivePageContent() {
     0
   );
 
-  // 计算固化服务费用
-  const fixedServiceFee = fixedItems.reduce(
-    (sum, item) => sum + item.pricePerUse * item.selectedCount,
-    0
-  );
-
-  const totalEstimate = calculateCurrentFee() + currentServiceFee + (order?.vasServiceTotal || 0) + (order?.equipmentTotal || 0);
+  const totalEstimate = calculateCurrentFee() + currentServiceFee + (order?.vasServiceTotal || 0);
 
   // 下单增值服务
   const handleOrderVas = async () => {
@@ -223,14 +220,13 @@ function ActivePageContent() {
     if (selectedItems.length === 0 || !token || !orderId) return;
 
     try {
-      const res = await fetch('/api/v1/orders/vas-services', {
+      const res = await fetch(`/api/v1/orders/${orderId}/services`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          orderId: parseInt(orderId),
           items: selectedItems.map(item => ({
             vasServiceId: item.id,
             quantity: item.selectedCount,
@@ -278,13 +274,13 @@ function ActivePageContent() {
     setError('');
 
     try {
-      const res = await fetch('/api/v1/orders/exit', {
+      const res = await fetch(`/api/v1/orders/${orderId}/exit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ orderId: parseInt(orderId) }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       
@@ -334,7 +330,6 @@ function ActivePageContent() {
   }
 
   const currentFee = calculateCurrentFee();
-  const showPendingStatus = ['pending_exit', 'reviewing', 'topup_pending'].includes(order.status);
 
   return (
     <Layout showFooter={true}>
@@ -566,5 +561,9 @@ function ActivePageContent() {
 }
 
 export default function ActivePage() {
-  return <ActivePageContent />;
+  return (
+    <Suspense fallback={<div>加载中...</div>}>
+      <ActivePageContent />
+    </Suspense>
+  );
 }

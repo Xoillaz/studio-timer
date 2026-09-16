@@ -36,7 +36,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin" className={styles.navItem}>仪表盘</Link>
           <Link href="/admin/pending" className={styles.navItem}>待审核</Link>
           <Link href="/admin/venues" className={styles.navItem}>场地管理</Link>
-          <Link href="/admin/equipments" className={styles.navItem}>设备管理</Link>
           <Link href="/admin/members" className={styles.navItem}>会员管理</Link>
           <Link href="/admin/orders" className={styles.navItem}>订单管理</Link>
           <Link href="/admin/logs" className={styles.navItem}>操作日志</Link>

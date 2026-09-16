@@ -5,20 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import PageLayout from '@/components/ui/PageLayout/PageLayout';
 import { OrderDetailContent, OrderStatusContent } from '@/components/member/OrderContent';
-import { OrderDetail } from '@/components/member/types';
+import { OrderDetail, VasServiceItem } from '@/components/member/types';
 import styles from './order-detail.module.css';
-
-const STATUS_MAP: Record<string, { label: string; className: string }> = {
-  pending_entry: { label: '待入场', className: 'pending' },
-  entering: { label: '进行中', className: 'entering' },
-  pending_exit: { label: '离场待审核', className: 'pending' },
-  reviewing: { label: '审核中', className: 'pending' },
-  topup_pending: { label: '补差价待审核', className: 'pending' },
-  pending_settlement: { label: '待结算', className: 'pending' },
-  rejected: { label: '已拒单', className: 'rejected' },
-  completed: { label: '已完成', className: 'completed' },
-  cancelled: { label: '已取消', className: 'cancelled' },
-};
 
 export default function OrderDetailPage() {
   const router = useRouter();
@@ -57,14 +45,14 @@ export default function OrderDetailPage() {
 
             // 增值服务 - 按下单时间分组显示
             if (data.data.vasServices && data.data.vasServices.length > 0) {
-              const grouped: { [key: string]: any[] } = {};
-              data.data.vasServices.forEach((v: any) => {
+              const grouped: { [key: string]: VasServiceItem[] } = {};
+              data.data.vasServices.forEach((v: VasServiceItem) => {
                 const timeKey = v.createdAt ? v.createdAt.substring(0, 19) : 'unknown';
                 if (!grouped[timeKey]) grouped[timeKey] = [];
                 grouped[timeKey].push(v);
               });
               
-              Object.entries(grouped).forEach(([time, items]: [string, any[]]) => {
+              Object.entries(grouped).forEach(([time, items]) => {
                 const details = items.map(v => `${v.name}×${v.quantity}`).join('、');
                 timeline.push({
                   action: 'vas_added',
@@ -118,36 +106,36 @@ export default function OrderDetailPage() {
     );
   }
 
-  const statusInfo = STATUS_MAP[order.status] || { label: order.status, className: '' };
-
   return (
     <PageLayout title="订单内容">
-      {/* 标签栏 */}
-      <div className={styles.tabBar}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            className={`${styles.tab} ${activeTab === tab.key ? styles.active : ''}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* 内容容器 - 类似状态页的 pageContainer */}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        {/* 标签栏 */}
+        <div className={styles.tabBar}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={`${styles.tab} ${activeTab === tab.key ? styles.active : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-      {/* 标签内容 */}
-      <div className={styles.tabContent}>
-        {activeTab === 'detail' && (
-          <OrderDetailContent 
-            order={order} 
-            currentAmount={order.baseAmount}
-            equipmentTotal={order.equipmentTotal}
-          />
-        )}
+        {/* 标签内容 */}
+        <div className={styles.tabContent}>
+          {activeTab === 'detail' && (
+            <OrderDetailContent 
+              order={order} 
+              currentAmount={order.baseAmount}
+            />
+          )}
 
-        {activeTab === 'status' && (
-          <OrderStatusContent timeline={order.timeline || []} />
-        )}
+          {activeTab === 'status' && (
+            <OrderStatusContent timeline={order.timeline || []} />
+          )}
+        </div>
       </div>
     </PageLayout>
   );

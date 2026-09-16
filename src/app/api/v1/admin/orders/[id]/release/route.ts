@@ -17,7 +17,7 @@ export async function POST(
     const orderId = parseInt(params.id);
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { member: true, venue: true, orderEquipments: { include: { equipment: true } } },
+      include: { member: true, venue: true },
     });
 
     if (!order) {
@@ -25,14 +25,12 @@ export async function POST(
     }
 
     // 计算费用并扣款
-    const equipmentTotal = order.orderEquipments.reduce((sum, oe) => sum + oe.subtotal, 0);
-    let finalAmount = order.baseAmount + equipmentTotal;
+    let finalAmount = order.baseAmount || 0;
 
     if (order.entryTime) {
       const minutes = Math.floor((Date.now() - new Date(order.entryTime).getTime()) / 60000);
       const billingUnits = Math.ceil(minutes / 30);
-      const venueFee = billingUnits * (order.venue.pricePerHour / 2);
-      finalAmount = venueFee + equipmentTotal;
+      finalAmount = billingUnits * (order.venue.pricePerHour / 2);
     }
 
     if (order.member.balance < finalAmount) {

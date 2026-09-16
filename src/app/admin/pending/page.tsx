@@ -13,13 +13,12 @@ interface Order {
   venueName: string;
   entryTime: string;
   currentAmount: number;
-  equipmentTotal: number;
   createdAt: string;
 }
 
 const statusMap: Record<string, { label: string; color: string }> = {
-  pending_exit: { label: '待离场审核', color: '#ff9800' },
-  pending_bill: { label: '待账单审核', color: '#2196f3' },
+  reviewing: { label: '待离场审核', color: '#ff9800' },
+  topup_pending: { label: '待账单审核', color: '#2196f3' },
 };
 
 export default function PendingPage() {
@@ -152,7 +151,7 @@ export default function PendingPage() {
           <div className={styles.modalContent}>
             <h2>审核订单 {selectedOrder?.orderNo}</h2>
             <div className={styles.form}>
-              {selectedOrder?.status === 'pending_exit' && (
+              {selectedOrder?.status === 'reviewing' && (
                 <div className={styles.field}>
                   <label>额外费用</label>
                   <input

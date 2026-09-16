@@ -28,7 +28,6 @@ export async function POST(
       include: {
         member: true,
         venue: true,
-        orderEquipments: { include: { equipment: true } },
       },
     });
 
@@ -36,12 +35,11 @@ export async function POST(
       return NextResponse.json(error(ErrorCodes.ORDER_NOT_FOUND, '订单不存在'));
     }
 
-    // 计算费用
-    const equipmentTotal = order.orderEquipments.reduce((sum, oe) => sum + oe.subtotal, 0);
-    let finalAmount = order.baseAmount + equipmentTotal;
+    // 基础费用
+    let finalAmount = order.baseAmount || 0;
 
     // 根据订单状态处理
-    if (order.status === 'pending_exit') {
+    if (order.status === 'reviewing') {
       // 离场审核
       if (action === 'approve') {
         // 计算最终费用
@@ -51,7 +49,7 @@ export async function POST(
           );
           const billingUnits = Math.ceil(minutes / 30);
           const venueFee = billingUnits * (order.venue.pricePerHour / 2);
-          finalAmount = venueFee + equipmentTotal + (extraAmount || 0);
+          finalAmount = venueFee + (extraAmount || 0);
         }
 
         // 扣款
@@ -99,7 +97,7 @@ export async function POST(
         // 拒绝离场
         await prisma.order.update({
           where: { id: orderId },
-          data: { status: 'entering' },
+          data: { status: 'active' },
         });
 
         await prisma.adminApproval.create({
@@ -113,7 +111,7 @@ export async function POST(
 
         return NextResponse.json(success({ message: '已拒绝离场申请' }));
       }
-    } else if (order.status === 'pending_bill') {
+    } else if (order.status === 'topup_pending') {
       // 账单审核（调价）
       if (action === 'approve') {
         finalAmount = (extraAmount || 0);
@@ -193,7 +191,6 @@ export async function GET(
       include: {
         member: { select: { id: true, name: true, phone: true, balance: true } },
         venue: true,
-        orderEquipments: { include: { equipment: true } },
       },
     });
 

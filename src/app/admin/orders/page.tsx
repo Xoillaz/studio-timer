@@ -18,12 +18,9 @@ interface Order {
 }
 
 const statusMap: Record<string, string> = {
-  pending_entry: '待入场',
-  entering: '使用中',
-  pending_exit: '离场',
-  pending_bill: '待账单',
+  pending: '待入场',
+  active: '使用中',
   completed: '已完成',
-  cancelled: '已取消',
 };
 
 export default function OrdersPage() {
@@ -64,9 +61,8 @@ export default function OrdersPage() {
       <div style={{ marginBottom: 'var(--spacing-md)' }}>
         <select value={filter} onChange={(e) => setFilter(e.target.value)} style={{ padding: 'var(--spacing-sm)', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)' }}>
           <option value="">全部</option>
-          <option value="pending_entry">待入场</option>
-          <option value="entering">使用中</option>
-          <option value="pending_exit">待审核</option>
+          <option value="pending">待入场</option>
+          <option value="active">使用中</option>
           <option value="completed">已完成</option>
         </select>
       </div>
@@ -81,7 +77,7 @@ export default function OrdersPage() {
               <div className={styles.info}>时间: {new Date(order.createdAt).toLocaleString()}</div>
             </div>
             <div className={styles.cardFooter}>
-              <span style={{ padding: '2px 8px', borderRadius: '10px', background: order.status === 'completed' ? '#4caf50' : order.status === 'entering' ? '#2196f3' : '#ff9800', color: 'white', fontSize: 'var(--font-size-xs)' }}>
+              <span style={{ padding: '2px 8px', borderRadius: '10px', background: order.status === 'completed' ? '#4caf50' : order.status === 'active' ? '#2196f3' : '#ff9800', color: 'white', fontSize: 'var(--font-size-xs)' }}>
                 {statusMap[order.status] || order.status}
               </span>
             </div>

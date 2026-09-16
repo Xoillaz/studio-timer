@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { venueId, equipmentIds } = body;
+    const { venueId } = body;
 
     if (!venueId) {
       return NextResponse.json(unauthorized('请选择场地'));
@@ -84,31 +84,9 @@ export async function POST(request: NextRequest) {
         orderNo,
         memberId,
         venueId,
-        status: 'pending_entry',
+        status: 'pending',
       },
     });
-
-    // 如果有设备，添加设备关联
-    if (equipmentIds && equipmentIds.length > 0) {
-      const equipmentPrices = await prisma.equipment.findMany({
-        where: { id: { in: equipmentIds } },
-        select: { id: true, pricePerUse: true },
-      });
-
-      const orderEquipments = equipmentIds.map((equipmentId: number) => {
-        const equipment = equipmentPrices.find((e) => e.id === equipmentId);
-        return {
-          orderId: order.id,
-          equipmentId,
-          quantity: 1,
-          subtotal: equipment?.pricePerUse || 0,
-        };
-      });
-
-      await prisma.orderEquipment.createMany({
-        data: orderEquipments,
-      });
-    }
 
     return NextResponse.json(success({ orderId: order.id, orderNo: order.orderNo }), { status: 201 });
   } catch (err) {

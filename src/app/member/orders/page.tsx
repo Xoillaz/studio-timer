@@ -21,16 +21,10 @@ interface Order {
   finalAmount: number;
 }
 
-const STATUS_MAP: Record<string, { label: string; variant: 'entering' | 'pending' | 'completed' | 'rejected' | 'default' }> = {
-  pending_entry: { label: '待入场', variant: 'pending' },
-  entering: { label: '进行中', variant: 'entering' },
-  pending_exit: { label: '离场待审核', variant: 'pending' },
-  reviewing: { label: '审核中', variant: 'pending' },
-  topup_pending: { label: '补差价待审核', variant: 'pending' },
-  pending_settlement: { label: '待结算', variant: 'pending' },
-  rejected: { label: '已拒单', variant: 'rejected' },
+const STATUS_MAP: Record<string, { label: string; variant: 'active' | 'pending' | 'completed' | 'rejected' | 'default' }> = {
+  pending: { label: '待入场', variant: 'pending' },
+  active: { label: '进行中', variant: 'active' },
   completed: { label: '已完成', variant: 'completed' },
-  cancelled: { label: '已取消', variant: 'default' },
 };
 
 export default function OrdersPage() {

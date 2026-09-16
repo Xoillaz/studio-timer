@@ -4,34 +4,35 @@ import { success, unauthorized, error, ErrorCodes } from '@/lib/api-response';
 import { getMemberIdFromToken } from '@/lib/auth';
 
 // 扫码入场
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const memberId = getMemberIdFromToken(request);
     if (!memberId) {
       return NextResponse.json(unauthorized('请先登录'));
     }
 
-    const body = await request.json();
-    const { orderId } = body;
+    const { id: orderId } = await params;
 
     if (!orderId) {
       return NextResponse.json(error(ErrorCodes.PARAM_ERROR, '缺少订单ID'));
     }
 
+    const orderIdNum = parseInt(orderId);
+    if (isNaN(orderIdNum)) {
+      return NextResponse.json(error(ErrorCodes.PARAM_ERROR, '订单ID无效'));
+    }
+
     // 查询订单
     const order = await prisma.order.findFirst({
       where: {
-        id: orderId,
+        id: orderIdNum,
         memberId,
       },
       include: {
         venue: true,
-        member: true,
-        orderEquipments: {
-          include: {
-            equipment: true,
-          },
-        },
       },
     });
 
@@ -39,47 +40,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(error(ErrorCodes.ORDER_NOT_FOUND, '订单不存在'));
     }
 
-    if (order.status !== 'pending_entry') {
+    if (order.status !== 'pending') {
       return NextResponse.json(error(ErrorCodes.ORDER_STATUS_ERROR, '订单状态不允许入场'));
     }
 
-    // 检查余额是否足够支付入场费（设备费用）
-    const equipmentTotal = order.orderEquipments.reduce(
-      (sum, oe) => sum + oe.subtotal,
-      0
-    );
-
-    if (order.member.balance < equipmentTotal) {
-      return NextResponse.json(
-        error(ErrorCodes.INSUFFICIENT_BALANCE, '余额不足，请先充值'),
-        { status: 400 }
-      );
-    }
-
-    // 扣减设备费用
-    await prisma.member.update({
-      where: { id: memberId },
-      data: {
-        balance: {
-          decrement: equipmentTotal,
-        },
-      },
-    });
-
-    // 更新订单状态为入场中
+    // 更新订单状态为进行中，记录入场时间
     const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
+      where: { id: orderIdNum },
       data: {
-        status: 'entering',
+        status: 'active',
         entryTime: new Date(),
       },
       include: {
         venue: true,
-        orderEquipments: {
-          include: {
-            equipment: true,
-          },
-        },
       },
     });
 
@@ -90,15 +63,7 @@ export async function POST(request: NextRequest) {
         status: updatedOrder.status,
         venueName: updatedOrder.venue.name,
         entryTime: updatedOrder.entryTime ? new Date(updatedOrder.entryTime).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : null,
-        baseAmount: updatedOrder.baseAmount,
-        finalAmount: updatedOrder.finalAmount,
-        equipmentTotal,
-        equipments: updatedOrder.orderEquipments.map(oe => ({
-          name: oe.equipment.name,
-          pricePerUse: oe.equipment.pricePerUse,
-          quantity: oe.quantity,
-          subtotal: oe.subtotal,
-        })),
+        venuePricePerHour: updatedOrder.venue.pricePerHour,
       },
     }));
   } catch (err) {

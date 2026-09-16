@@ -363,20 +363,89 @@
 
 ---
 
-## 三、设备管理
+## 三、订单接口
 
-### 3.1 获取设备列表
+### 3.1 创建订单（选择场地，待入场）
 
 | 项目 | 内容 |
 |------|------|
-| **方法** | `GET` |
-| **路径** | `/equipments` |
-| **角色** | 公开 |
+| **方法** | `POST` |
+| **路径** | `/orders` |
+| **角色** | 会员 |
+| **Header** | `Authorization: Bearer ***` |
+| **Content-Type** | `application/json` |
 
-**查询参数：**
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| is_active | boolean | 否 | 是否启用 |
+**请求体：**
+```json
+{
+    "venue_id": "integer (required)"
+}
+```
+
+**响应 201：**
+```json
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "order_id": "integer",
+        "order_no": "string"
+    }
+}
+```
+
+**说明：** 创建订单后状态为 `pending`（待入场），需调用入场接口开始计时。
+
+---
+
+### 3.2 入场（开始计时）
+
+| 项目 | 内容 |
+|------|------|
+| **方法** | `POST` |
+| **路径** | `/orders/:id/entry` |
+| **角色** | 会员（订单创建者） |
+| **Header** | `Authorization: Bearer ***` |
+
+**响应 200：**
+```json
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "order": {
+            "id": "integer",
+            "order_no": "string",
+            "status": "active",
+            "venue_name": "string",
+            "entry_time": "datetime",
+            "venue_price_per_hour": "decimal"
+        }
+    }
+}
+```
+
+**错误码：**
+| 错误码 | 说明 |
+|--------|------|
+| 1003 | 订单状态不允许此操作（状态必须为 pending） |
+| 1004 | 订单不存在 |
+| 1005 | 无权操作此订单 |
+
+**说明：** 入场后状态从 `pending` 变为 `active`（进行中）。
+
+---
+
+### 3.3 增值服务
+
+| 项目 | 内容 |
+|------|------|
+| **方法** | `GET` / `POST` |
+| **路径** | `/orders/:id/services` |
+| **角色** | 会员（订单创建者） |
+| **Header** | `Authorization: Bearer ***` |
+
+**GET 获取增值服务列表：**
 
 **响应 200：**
 ```json
@@ -389,237 +458,27 @@
                 "id": "integer",
                 "name": "string",
                 "price_per_use": "decimal",
-                "description": "string",
-                "is_active": "boolean"
-            }
-        ],
-        "total": "integer",
-        "page": "integer",
-        "page_size": "integer"
-    }
-}
-```
-
----
-
-### 3.2 创建设备
-
-| 项目 | 内容 |
-|------|------|
-| **方法** | `POST` |
-| **路径** | `/equipments` |
-| **角色** | 管理员 |
-| **Header** | `Authorization: Bearer <admin_token>` |
-| **Content-Type** | `application/json` |
-
-**请求体：**
-```json
-{
-    "name": "string (required, max=100)",
-    "price_per_use": "decimal (required, min=0.01)",
-    "description": "string (optional, max=500)",
-    "is_active": "boolean (default=true)"
-}
-```
-
-**响应 201：**
-```json
-{
-    "code": 0,
-    "message": "success",
-    "data": {
-        "id": "integer",
-        "name": "string",
-        "price_per_use": "decimal",
-        "description": "string",
-        "is_active": "boolean",
-        "created_at": "datetime"
-    }
-}
-```
-
----
-
-### 3.3 更新设备
-
-| 项目 | 内容 |
-|------|------|
-| **方法** | `PUT` |
-| **路径** | `/equipments/:id` |
-| **角色** | 管理员 |
-| **Header** | `Authorization: Bearer <admin_token>` |
-| **Content-Type** | `application/json` |
-
-**请求体：**
-```json
-{
-    "name": "string (optional)",
-    "price_per_use": "decimal (optional)",
-    "description": "string (optional)",
-    "is_active": "boolean (optional)"
-}
-```
-
-**响应 200：**
-```json
-{
-    "code": 0,
-    "message": "success",
-    "data": {
-        "id": "integer",
-        "name": "string",
-        "price_per_use": "decimal",
-        "description": "string",
-        "is_active": "boolean",
-        "updated_at": "datetime"
-    }
-}
-```
-
-**错误码：**
-| 错误码 | 说明 |
-|--------|------|
-| 3002 | 设备不存在 |
-
----
-
-### 3.4 删除设备
-
-| 项目 | 内容 |
-|------|------|
-| **方法** | `DELETE` |
-| **路径** | `/equipments/:id` |
-| **角色** | 管理员 |
-| **Header** | `Authorization: Bearer <admin_token>` |
-
-**响应 200：**
-```json
-{
-    "code": 0,
-    "message": "success",
-    "data": null
-}
-```
-
-**错误码：**
-| 错误码 | 说明 |
-|--------|------|
-| 3002 | 设备不存在 |
-
----
-
-## 四、订单接口
-
-### 4.1 创建订单（选择场地设备，待入场）
-
-| 项目 | 内容 |
-|------|------|
-| **方法** | `POST` |
-| **路径** | `/orders` |
-| **角色** | 会员 |
-| **Header** | `Authorization: Bearer <member_token>` |
-| **Content-Type** | `application/json` |
-
-**请求体：**
-```json
-{
-    "venue_id": "integer (required)",
-    "equipment_ids": "array[integer] (optional)",
-    "leader_name": "string (required, max=100)",
-    "leader_phone": "string (required, max=20)"
-}
-```
-
-**响应 201：**
-```json
-{
-    "code": 0,
-    "message": "success",
-    "data": {
-        "id": "integer",
-        "order_no": "string",
-        "status": "string",
-        "venue": {
-            "id": "integer",
-            "name": "string",
-            "price_per_hour": "decimal"
-        },
-        "equipments": [
-            {
-                "id": "integer",
-                "name": "string",
-                "price_per_use": "decimal",
                 "quantity": "integer",
-                "subtotal": "decimal"
+                "subtotal": "decimal",
+                "created_at": "datetime"
             }
         ],
-        "leader_name": "string",
-        "leader_phone": "string",
-        "created_at": "datetime"
+        "total": "decimal"
     }
 }
 ```
 
-**错误码：**
-| 错误码 | 说明 |
-|--------|------|
-| 1001 | 参数错误 |
-| 1006 | 已有进行中的订单 |
-| 3001 | 场地不存在 |
-| 3002 | 设备不存在 |
-| 2003 | token无效或已过期 |
-
----
-
-### 4.2 扫码入场
-
-| 项目 | 内容 |
-|------|------|
-| **方法** | `POST` |
-| **路径** | `/orders/:id/entry` |
-| **角色** | 会员（订单创建者） |
-| **Header** | `Authorization: Bearer <member_token>` |
-
-**响应 200：**
-```json
-{
-    "code": 0,
-    "message": "入场成功",
-    "data": {
-        "id": "integer",
-        "order_no": "string",
-        "status": "entering",
-        "entry_time": "datetime",
-        "message": "string"
-    }
-}
-```
-
-**错误码：**
-| 错误码 | 说明 |
-|--------|------|
-| 1003 | 订单状态不允许此操作（状态必须为pending_entry） |
-| 1004 | 订单不存在 |
-| 1005 | 无权操作此订单 |
-| 2003 | token无效或已过期 |
-
----
-
-### 4.3 申请部分人离场
-
-| 项目 | 内容 |
-|------|------|
-| **方法** | `POST` |
-| **路径** | `/orders/:id/partial-exit` |
-| **角色** | 会员（订单创建者） |
-| **Header** | `Authorization: Bearer <member_token>` |
-| **Content-Type** | `application/json` |
+**POST 添加增值服务：**
 
 **请求体：**
 ```json
 {
-    "person_count": "integer (required, min=1)",
-    "remark": "string (optional, max=500)"
+    "items": [
+        {
+            "vas_service_id": "integer (required)",
+            "quantity": "integer (required, min=1)"
+        }
+    ]
 }
 ```
 
@@ -627,12 +486,10 @@
 ```json
 {
     "code": 0,
-    "message": "申请已提交，等待管理员审核",
+    "message": "success",
     "data": {
-        "id": "integer",
-        "partial_exit_count": "integer",
-        "status": "partial_exit_pending",
-        "message": "string"
+        "services": [...],
+        "total": "decimal"
     }
 }
 ```
@@ -641,32 +498,33 @@
 | 错误码 | 说明 |
 |--------|------|
 | 1001 | 参数错误 |
-| 1003 | 订单状态不允许此操作（状态必须为entering） |
-| 1004 | 订单不存在 |
-| 1005 | 无权操作此订单 |
-| 2003 | token无效或已过期 |
+| 1003 | 订单状态不允许此操作（状态必须为 active） |
 
 ---
 
-### 4.4 申请离场
+### 3.4 离场（结束计时）
 
 | 项目 | 内容 |
 |------|------|
 | **方法** | `POST` |
 | **路径** | `/orders/:id/exit` |
 | **角色** | 会员（订单创建者） |
-| **Header** | `Authorization: Bearer <member_token>` |
+| **Header** | `Authorization: Bearer ***` |
 
 **响应 200：**
 ```json
 {
     "code": 0,
-    "message": "申请已提交",
+    "message": "success",
     "data": {
-        "id": "integer",
-        "status": "pending_exit",
-        "estimated_amount": "decimal",
-        "message": "账单已推送，等待管理员审核"
+        "order": {
+            "id": "integer",
+            "order_no": "string",
+            "status": "completed",
+            "duration_minutes": "integer",
+            "base_amount": "decimal",
+            "final_amount": "decimal"
+        }
     }
 }
 ```
@@ -674,56 +532,16 @@
 **错误码：**
 | 错误码 | 说明 |
 |--------|------|
-| 1003 | 订单状态不允许此操作（状态必须为entering） |
+| 1003 | 订单状态不允许此操作（状态必须为 active） |
 | 1004 | 订单不存在 |
 | 1005 | 无权操作此订单 |
-| 2003 | token无效或已过期 |
+| 1006 | 余额不足 |
+
+**说明：** 离场后状态从 `active` 直接变为 `completed`（已完成），自动扣除场地费+增值服务费。
 
 ---
 
-### 4.5 补差价
-
-| 项目 | 内容 |
-|------|------|
-| **方法** | `POST` |
-| **路径** | `/orders/:id/topup` |
-| **角色** | 会员（订单创建者） |
-| **Header** | `Authorization: Bearer <member_token>` |
-| **Content-Type** | `application/json` |
-
-**请求体：**
-```json
-{
-    "amount": "decimal (required, min=0.01)"
-}
-```
-
-**响应 200：**
-```json
-{
-    "code": 0,
-    "message": "补差价申请已提交",
-    "data": {
-        "id": "integer",
-        "status": "topup_pending",
-        "topup_amount": "decimal"
-    }
-}
-```
-
-**错误码：**
-| 错误码 | 说明 |
-|--------|------|
-| 1001 | 参数错误 |
-| 1003 | 订单状态不允许此操作（状态必须为pending_exit） |
-| 1008 | 充值金额必须大于0 |
-| 1004 | 订单不存在 |
-| 1005 | 无权操作此订单 |
-| 2003 | token无效或已过期 |
-
----
-
-### 4.6 获取订单详情
+### 3.5 获取订单详情
 
 | 项目 | 内容 |
 |------|------|
@@ -751,7 +569,7 @@
             "name": "string",
             "price_per_hour": "decimal"
         },
-        "equipments": [...],
+        "vas_services": [...],
         "entry_time": "datetime",
         "exit_time": "datetime",
         "duration_minutes": "integer",
@@ -770,7 +588,7 @@
 
 ---
 
-### 4.7 获取订单列表
+### 3.6 获取订单列表
 
 | 项目 | 内容 |
 |------|------|

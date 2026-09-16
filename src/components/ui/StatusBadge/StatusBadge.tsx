@@ -3,7 +3,7 @@
 import { ReactNode } from 'react';
 import styles from './StatusBadge.module.css';
 
-export type StatusVariant = 'entering' | 'pending' | 'completed' | 'rejected' | 'default';
+export type StatusVariant = 'active' | 'pending' | 'completed' | 'rejected' | 'default';
 
 export interface StatusBadgeProps {
   variant?: StatusVariant;

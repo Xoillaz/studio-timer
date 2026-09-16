@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -41,7 +41,7 @@ export default function ProfilePage() {
     try {
       await logout();
       router.push('/login');
-    } catch (err) {
+    } catch {
       showToast('error', '登出失败，请重试');
     }
   };

@@ -8,7 +8,7 @@ export type IconName =
   | 'log-out' | 'message-circle' | 'wallet' 
   | 'arrow-up' | 'arrow-down' | 'list' | 'home';
 
-interface IconProps {
+export type IconProps = {
   name: IconName;
   size?: number;
   className?: string;

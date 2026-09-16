@@ -6,7 +6,7 @@ import { getMemberIdFromToken } from '@/lib/auth';
 // 获取订单详情
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const memberId = getMemberIdFromToken(request);
@@ -14,7 +14,8 @@ export async function GET(
       return NextResponse.json(unauthorized('请先登录'));
     }
 
-    const orderId = parseInt(params.id);
+    const { id: orderIdStr } = await params;
+    const orderId = parseInt(orderIdStr);
     if (isNaN(orderId)) {
       return NextResponse.json(unauthorized('无效的订单ID'));
     }
@@ -28,11 +29,6 @@ export async function GET(
         venue: true,
         member: {
           select: { name: true, phone: true },
-        },
-        orderEquipments: {
-          include: {
-            equipment: true,
-          },
         },
         orderVasServices: {
           include: {
@@ -49,7 +45,7 @@ export async function GET(
 
     // 计算当前费用：按半小时计费，不足半小时按半小时计，超过则向上舍入到0.5小时
     let currentAmount = 0;
-    if (order.entryTime && order.status === 'entering') {
+    if (order.entryTime && order.status === 'active') {
       const minutes = Math.floor(
         (Date.now() - new Date(order.entryTime).getTime()) / 60000
       );
@@ -72,13 +68,6 @@ export async function GET(
       baseAmount: order.baseAmount,
       extraAmount: order.extraAmount,
       finalAmount: order.finalAmount,
-      equipmentTotal: order.orderEquipments.reduce((sum, oe) => sum + oe.subtotal, 0),
-      equipments: order.orderEquipments.map(oe => ({
-        name: oe.equipment.name,
-        pricePerUse: oe.equipment.pricePerUse,
-        quantity: oe.quantity,
-        subtotal: oe.subtotal,
-      })),
       vasServiceTotal: order.orderVasServices.reduce((sum, ov) => sum + ov.subtotal, 0),
       vasServices: order.orderVasServices.map(ov => ({
         name: ov.vasService.name,

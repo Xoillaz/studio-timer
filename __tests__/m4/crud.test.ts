@@ -4,7 +4,10 @@
  * 
  * 测试目标：
  * - 场地管理 CRUD
- * - 设备管理 CRUD
+ * - 增值服务管理 CRUD（v1.5 重构：原设备管理改为增值服务）
+ * 
+ * 更新记录：
+ * - v1.5: 设备管理改为增值服务管理 (VasService)
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -20,29 +23,31 @@ interface Venue {
   updated_at: string;
 }
 
-interface Equipment {
+interface VasService {
   id: number;
   name: string;
   price_per_use: number;
-  description: string;
+  category: 'equipment' | 'consumables';
+  remark: string;
   is_active: boolean;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }
 
 // Mock Data Store
 let venues: Venue[] = [
-  { id: 1, name: '场地A', price_per_hour: 50, description: '50平米实景棚', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-  { id: 2, name: '场地B', price_per_hour: 80, description: '30平米绿幕棚', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' }
+  { id: 1, name: '实景棚', price_per_hour: 200, description: '50平米实景棚', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
+  { id: 2, name: '绿幕棚', price_per_hour: 150, description: '30平米绿幕棚', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' }
 ];
 
-let equipments: Equipment[] = [
-  { id: 1, name: '设备A', price_per_use: 20, description: 'Sony FX6', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-  { id: 2, name: '设备B', price_per_use: 30, description: 'Canon R5', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' }
+let vasServices: VasService[] = [
+  { id: 1, name: '专业摄影机', price_per_use: 100, category: 'equipment', remark: 'Sony FX6', is_active: true, sort_order: 1, created_at: '2026-01-01', updated_at: '2026-01-01' },
+  { id: 2, name: '单反相机', price_per_use: 50, category: 'equipment', remark: 'Canon R5', is_active: true, sort_order: 2, created_at: '2026-01-01', updated_at: '2026-01-01' }
 ];
 
 let venueIdCounter = 3;
-let equipmentIdCounter = 3;
+let vasServiceIdCounter = 3;
 
 // Mock API
 const mockApi = {
@@ -71,29 +76,29 @@ const mockApi = {
     venues.splice(index, 1);
   },
   
-  // Equipment CRUD
-  getEquipments: async (): Promise<Equipment[]> => equipments,
-  getEquipment: async (id: number): Promise<Equipment | null> => equipments.find(e => e.id === id) || null,
-  createEquipment: async (data: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>): Promise<Equipment> => {
-    const equipment: Equipment = {
-      id: equipmentIdCounter++,
+  // VasService CRUD
+  getVasServices: async (): Promise<VasService[]> => vasServices,
+  getVasService: async (id: number): Promise<VasService | null> => vasServices.find(v => v.id === id) || null,
+  createVasService: async (data: Omit<VasService, 'id' | 'created_at' | 'updated_at'>): Promise<VasService> => {
+    const vasService: VasService = {
+      id: vasServiceIdCounter++,
       ...data,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-    equipments.push(equipment);
-    return equipment;
+    vasServices.push(vasService);
+    return vasService;
   },
-  updateEquipment: async (id: number, data: Partial<Equipment>): Promise<Equipment> => {
-    const equipment = equipments.find(e => e.id === id);
-    if (!equipment) throw new Error('设备不存在');
-    Object.assign(equipment, data, { updated_at: new Date().toISOString() });
-    return equipment;
+  updateVasService: async (id: number, data: Partial<VasService>): Promise<VasService> => {
+    const vasService = vasServices.find(v => v.id === id);
+    if (!vasService) throw new Error('增值服务不存在');
+    Object.assign(vasService, data, { updated_at: new Date().toISOString() });
+    return vasService;
   },
-  deleteEquipment: async (id: number): Promise<void> => {
-    const index = equipments.findIndex(e => e.id === id);
-    if (index === -1) throw new Error('设备不存在');
-    equipments.splice(index, 1);
+  deleteVasService: async (id: number): Promise<void> => {
+    const index = vasServices.findIndex(v => v.id === id);
+    if (index === -1) throw new Error('增值服务不存在');
+    vasServices.splice(index, 1);
   }
 };
 
@@ -140,133 +145,127 @@ class VenueService {
   }
 }
 
-// Equipment Management Service
-class EquipmentService {
-  async getAll(): Promise<Equipment[]> {
-    return mockApi.getEquipments();
+// VasService Management Service
+class VasServiceManagement {
+  async getAll(): Promise<VasService[]> {
+    return mockApi.getVasServices();
   }
   
-  async getById(id: number): Promise<Equipment | null> {
-    return mockApi.getEquipment(id);
+  async getById(id: number): Promise<VasService | null> {
+    return mockApi.getVasService(id);
   }
   
-  async create(data: { name: string; price_per_use: number; description?: string; is_active?: boolean }): Promise<Equipment> {
+  async create(data: { 
+    name: string; 
+    price_per_use: number; 
+    category?: 'equipment' | 'consumables';
+    remark?: string; 
+    is_active?: boolean;
+    sort_order?: number;
+  }): Promise<VasService> {
     if (!data.name || data.name.trim() === '') {
-      throw new Error('设备名称不能为空');
+      throw new Error('服务名称不能为空');
     }
     if (data.price_per_use < 0) {
       throw new Error('价格不能为负数');
     }
-    return mockApi.createEquipment({
+    return mockApi.createVasService({
       name: data.name,
       price_per_use: data.price_per_use,
-      description: data.description || '',
-      is_active: data.is_active !== undefined ? data.is_active : true
+      category: data.category || 'equipment',
+      remark: data.remark || '',
+      is_active: data.is_active !== undefined ? data.is_active : true,
+      sort_order: data.sort_order || 0
     });
   }
   
-  async update(id: number, data: Partial<{ name: string; price_per_use: number; description: string; is_active: boolean }>): Promise<Equipment> {
+  async update(id: number, data: Partial<{ 
+    name: string; 
+    price_per_use: number; 
+    category: string;
+    remark: string; 
+    is_active: boolean;
+    sort_order: number;
+  }>): Promise<VasService> {
     if (data.price_per_use !== undefined && data.price_per_use < 0) {
       throw new Error('价格不能为负数');
     }
-    return mockApi.updateEquipment(id, data as Partial<Equipment>);
+    return mockApi.updateVasService(id, data as Partial<VasService>);
   }
   
   async delete(id: number): Promise<void> {
-    return mockApi.deleteEquipment(id);
+    return mockApi.deleteVasService(id);
   }
   
-  async toggleStatus(id: number): Promise<Equipment> {
-    const equipment = await this.getById(id);
-    if (!equipment) throw new Error('设备不存在');
-    return this.update(id, { is_active: !equipment.is_active });
+  async toggleStatus(id: number): Promise<VasService> {
+    const vasService = await this.getById(id);
+    if (!vasService) throw new Error('增值服务不存在');
+    return this.update(id, { is_active: !vasService.is_active });
   }
 }
 
 describe('M4 管理员端 - 资源管理', () => {
   let venueService: VenueService;
-  let equipmentService: EquipmentService;
+  let vasServiceManagement: VasServiceManagement;
   
   beforeEach(() => {
-    // 重置数据
     venues = [
-      { id: 1, name: '场地A', price_per_hour: 50, description: '50平米实景棚', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-      { id: 2, name: '场地B', price_per_hour: 80, description: '30平米绿幕棚', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' }
+      { id: 1, name: '实景棚', price_per_hour: 200, description: '50平米实景棚', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
+      { id: 2, name: '绿幕棚', price_per_hour: 150, description: '30平米绿幕棚', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' }
     ];
-    equipments = [
-      { id: 1, name: '设备A', price_per_use: 20, description: 'Sony FX6', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
-      { id: 2, name: '设备B', price_per_use: 30, description: 'Canon R5', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' }
+    vasServices = [
+      { id: 1, name: '专业摄影机', price_per_use: 100, category: 'equipment', remark: 'Sony FX6', is_active: true, sort_order: 1, created_at: '2026-01-01', updated_at: '2026-01-01' },
+      { id: 2, name: '单反相机', price_per_use: 50, category: 'equipment', remark: 'Canon R5', is_active: true, sort_order: 2, created_at: '2026-01-01', updated_at: '2026-01-01' }
     ];
     venueIdCounter = 3;
-    equipmentIdCounter = 3;
+    vasServiceIdCounter = 3;
     
     venueService = new VenueService();
-    equipmentService = new EquipmentService();
+    vasServiceManagement = new VasServiceManagement();
   });
   
   describe('T4-8: 场地管理 CRUD', () => {
     it('should create new venue', async () => {
-      // Act
       const venue = await venueService.create({
-        name: '棚B',
-        price_per_hour: 80,
-        description: '新场地'
+        name: '多功能棚',
+        price_per_hour: 300,
+        description: '100平米大型棚'
       });
       
-      // Assert
       expect(venue).toBeDefined();
-      expect(venue.name).toBe('棚B');
-      expect(venue.price_per_hour).toBe(80);
+      expect(venue.name).toBe('多功能棚');
+      expect(venue.price_per_hour).toBe(300);
       expect(venue.is_active).toBe(true);
     });
     
     it('should list all venues', async () => {
-      // Act
       const venues = await venueService.getAll();
       
-      // Assert
       expect(venues.length).toBe(2);
     });
     
     it('should update venue price', async () => {
-      // Arrange
-      const venueId = 1;
+      const updated = await venueService.update(1, { price_per_hour: 250 });
       
-      // Act
-      const updated = await venueService.update(venueId, { price_per_hour: 100 });
-      
-      // Assert
-      expect(updated.price_per_hour).toBe(100);
+      expect(updated.price_per_hour).toBe(250);
     });
     
     it('should delete venue', async () => {
-      // Arrange
-      const venueId = 1;
-      
-      // Act
-      await venueService.delete(venueId);
+      await venueService.delete(1);
       const venues = await venueService.getAll();
       
-      // Assert
       expect(venues.length).toBe(1);
-      expect(venues.find(v => v.id === venueId)).toBeUndefined();
     });
     
     it('should toggle venue status', async () => {
-      // Arrange
-      const venueId = 1;
-      
-      // Act - 启用 -> 禁用
-      const toggled1 = await venueService.toggleStatus(venueId);
+      const toggled1 = await venueService.toggleStatus(1);
       expect(toggled1.is_active).toBe(false);
       
-      // Act - 禁用 -> 启用
-      const toggled2 = await venueService.toggleStatus(venueId);
+      const toggled2 = await venueService.toggleStatus(1);
       expect(toggled2.is_active).toBe(true);
     });
     
     it('should reject invalid venue name', async () => {
-      // Act & Assert
       await expect(venueService.create({
         name: '',
         price_per_hour: 50
@@ -274,7 +273,6 @@ describe('M4 管理员端 - 资源管理', () => {
     });
     
     it('should reject negative price', async () => {
-      // Act & Assert
       await expect(venueService.create({
         name: '测试场地',
         price_per_hour: -10
@@ -282,79 +280,58 @@ describe('M4 管理员端 - 资源管理', () => {
     });
   });
   
-  describe('T4-9: 设备管理 CRUD', () => {
-    it('should create new equipment', async () => {
-      // Act
-      const equipment = await equipmentService.create({
-        name: '灯光设备',
-        price_per_use: 30,
-        description: 'Aputure 300d'
+  describe('T4-9: 增值服务管理 CRUD', () => {
+    it('should create new vas service', async () => {
+      const vasService = await vasServiceManagement.create({
+        name: 'LED补光灯',
+        price_per_use: 20,
+        category: 'equipment',
+        remark: 'Aputure 300d'
       });
       
-      // Assert
-      expect(equipment).toBeDefined();
-      expect(equipment.name).toBe('灯光设备');
-      expect(equipment.price_per_use).toBe(30);
-      expect(equipment.is_active).toBe(true);
+      expect(vasService).toBeDefined();
+      expect(vasService.name).toBe('LED补光灯');
+      expect(vasService.price_per_use).toBe(20);
+      expect(vasService.is_active).toBe(true);
     });
     
-    it('should list all equipments', async () => {
-      // Act
-      const equipments = await equipmentService.getAll();
+    it('should list all vas services', async () => {
+      const vasServices = await vasServiceManagement.getAll();
       
-      // Assert
-      expect(equipments.length).toBe(2);
+      expect(vasServices.length).toBe(2);
     });
     
-    it('should update equipment price', async () => {
-      // Arrange
-      const equipmentId = 1;
+    it('should update vas service price', async () => {
+      const updated = await vasServiceManagement.update(1, { price_per_use: 150 });
       
-      // Act
-      const updated = await equipmentService.update(equipmentId, { price_per_use: 50 });
-      
-      // Assert
-      expect(updated.price_per_use).toBe(50);
+      expect(updated.price_per_use).toBe(150);
     });
     
-    it('should delete equipment', async () => {
-      // Arrange
-      const equipmentId = 1;
+    it('should delete vas service', async () => {
+      await vasServiceManagement.delete(1);
+      const vasServices = await vasServiceManagement.getAll();
       
-      // Act
-      await equipmentService.delete(equipmentId);
-      const equipments = await equipmentService.getAll();
-      
-      // Assert
-      expect(equipments.length).toBe(1);
-      expect(equipments.find(e => e.id === equipmentId)).toBeUndefined();
+      expect(vasServices.length).toBe(1);
     });
     
-    it('should toggle equipment status', async () => {
-      // Arrange
-      const equipmentId = 1;
-      
-      // Act - 启用 -> 禁用
-      const toggled1 = await equipmentService.toggleStatus(equipmentId);
+    it('should toggle vas service status', async () => {
+      const toggled1 = await vasServiceManagement.toggleStatus(1);
       expect(toggled1.is_active).toBe(false);
       
-      // Act - 禁用 -> 启用
-      const toggled2 = await equipmentService.toggleStatus(equipmentId);
+      const toggled2 = await vasServiceManagement.toggleStatus(1);
       expect(toggled2.is_active).toBe(true);
     });
     
-    it('should reject invalid equipment name', async () => {
-      // Act & Assert
-      await expect(equipmentService.create({
+    it('should reject invalid vas service name', async () => {
+      await expect(vasServiceManagement.create({
         name: '',
         price_per_use: 20
-      })).rejects.toThrow('设备名称不能为空');
+      })).rejects.toThrow('服务名称不能为空');
     });
     
     it('should reject negative price', async () => {
-      // Act & Assert
-      await expect(equipmentService.create({
-        name: '测试设备',
+      await expect(vasServiceManagement.create({
+        name: '测试服务',
         price_per_use: -5
       })).rejects.toThrow('价格不能为负数');
     });

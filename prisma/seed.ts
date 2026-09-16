@@ -41,25 +41,6 @@ async function main() {
   }
   console.log('Venues created');
 
-  // 创建设备
-  const equipments = [
-    { name: '专业摄影机', pricePerUse: 100, description: 'Sony FX6' },
-    { name: '单反相机', pricePerUse: 50, description: 'Canon R5' },
-    { name: 'LED补光灯', pricePerUse: 20, description: 'Aputure 300d' },
-    { name: '稳定器', pricePerUse: 30, description: 'DJI RS3' },
-    { name: '无线麦克风', pricePerUse: 15, description: 'Rode Wireless GO' },
-  ];
-
-  for (const eq of equipments) {
-    const existing = await prisma.equipment.findFirst({
-      where: { name: eq.name },
-    });
-    if (!existing) {
-      await prisma.equipment.create({ data: eq });
-    }
-  }
-  console.log('Equipments created');
-
   console.log('Database seeded successfully!');
 }
 
