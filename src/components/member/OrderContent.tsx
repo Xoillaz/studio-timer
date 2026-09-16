@@ -48,12 +48,6 @@ export function OrderDetailContent({ order, currentAmount = 0 }: OrderDetailCont
           <span className={styles.value}>{order.orderNo}</span>
         </div>
         <div className={styles.infoRow}>
-          <span className={styles.label}>下单时间</span>
-          <span className={styles.value}>
-            {order.createdAt ? new Date(order.createdAt).toLocaleString('zh-CN') : '-'}
-          </span>
-        </div>
-        <div className={styles.infoRow}>
           <span className={styles.label}>入场时间</span>
           <span className={styles.value}>
             {order.entryTime ? new Date(order.entryTime).toLocaleString('zh-CN') : '-'}
