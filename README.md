@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Studio Timer - 片场租赁计时管理系统
 
-## Getting Started
+片场租赁计时管理系统是一个面向片场租赁场景的计时计费解决方案，支持会员管理、场地预约、实时计时、增值服务和在线结算。
 
-First, run the development server:
+## 功能特性
+
+- 会员注册与登录
+- 场地选择与预约
+- 实时计时
+- 增值服务点单
+- 在线充值与结算
+- 管理员后台
+
+## 技术栈
+
+- Next.js 14
+- TypeScript
+- Prisma
+- SQLite (本地) / MySQL (生产)
+
+## 开发
 
 ```bash
+# 安装依赖
+npm install
+
+# 运行开发服务器
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# 构建生产版本
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 部署
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+本项目支持部署到 Vercel。详见部署文档。
