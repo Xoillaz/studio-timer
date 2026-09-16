@@ -22,6 +22,22 @@ export function OrderDetailContent({ order, currentAmount = 0 }: OrderDetailCont
   const baseAmount = currentAmount || order.baseAmount || 0;
   const vasTotal = order.vasServiceTotal || 0;
 
+  // 增值服务按名称合并同类项
+  const vasServiceMap = new Map<string, { name: string; quantity: number; subtotal: number }>();
+  if (order.vasServices) {
+    order.vasServices.forEach((vas) => {
+      const key = vas.name;
+      if (vasServiceMap.has(key)) {
+        const existing = vasServiceMap.get(key)!;
+        existing.quantity += vas.quantity;
+        existing.subtotal += vas.subtotal;
+      } else {
+        vasServiceMap.set(key, { name: vas.name, quantity: vas.quantity, subtotal: vas.subtotal });
+      }
+    });
+  }
+  const mergedVasServices = Array.from(vasServiceMap.values());
+
   return (
     <div className={styles.detailContent}>
       {/* 订单信息 */}
@@ -37,36 +53,6 @@ export function OrderDetailContent({ order, currentAmount = 0 }: OrderDetailCont
             {order.createdAt ? new Date(order.createdAt).toLocaleString('zh-CN') : '-'}
           </span>
         </div>
-        <div className={styles.infoRow}>
-          <span className={styles.label}>支付方式</span>
-          <span className={styles.value}>余额支付</span>
-        </div>
-        <div className={styles.infoRow}>
-          <span className={styles.label}>场地</span>
-          <span className={styles.value}>{order.venueName}</span>
-        </div>
-        <div className={styles.infoRow}>
-          <span className={styles.label}>场地单价</span>
-          <span className={styles.value}>¥{order.venuePricePerHour}/小时</span>
-        </div>
-      </div>
-
-      {/* 增值服务信息 */}
-      {order.vasServices && order.vasServices.length > 0 && (
-        <div className={styles.infoCard}>
-          <h3 className={styles.cardTitle}>增值服务</h3>
-          {order.vasServices.map((vas, index) => (
-            <div key={index} className={styles.infoRow}>
-              <span className={styles.label}>{vas.name} × {vas.quantity}</span>
-              <span className={styles.value}>¥{vas.subtotal}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 时间信息 */}
-      <div className={styles.infoCard}>
-        <h3 className={styles.cardTitle}>时间信息</h3>
         <div className={styles.infoRow}>
           <span className={styles.label}>入场时间</span>
           <span className={styles.value}>
@@ -89,15 +75,29 @@ export function OrderDetailContent({ order, currentAmount = 0 }: OrderDetailCont
       <div className={styles.infoCard}>
         <h3 className={styles.cardTitle}>费用信息</h3>
         <div className={styles.infoRow}>
+          <span className={styles.label}>场地</span>
+          <span className={styles.value}>{order.venueName}</span>
+        </div>
+        <div className={styles.infoRow}>
           <span className={styles.label}>场地费</span>
           <span className={styles.value}>¥{baseAmount.toFixed(2)}</span>
         </div>
-        {vasTotal > 0 && (
-          <div className={styles.infoRow}>
-            <span className={styles.label}>增值服务费</span>
-            <span className={styles.value}>¥{vasTotal.toFixed(2)}</span>
-          </div>
+        
+        {/* 增值服务明细 */}
+        {mergedVasServices.length > 0 && (
+          <>
+            <div className={styles.vasDivider}>
+              <span>增值服务</span>
+            </div>
+            {mergedVasServices.map((vas, index) => (
+              <div key={index} className={styles.infoRow}>
+                <span className={styles.label}>{vas.name} × {vas.quantity}</span>
+                <span className={styles.value}>¥{vas.subtotal.toFixed(2)}</span>
+              </div>
+            ))}
+          </>
         )}
+        
         {order.extraAmount > 0 && (
           <div className={styles.infoRow}>
             <span className={styles.label}>额外费用</span>
@@ -107,14 +107,6 @@ export function OrderDetailContent({ order, currentAmount = 0 }: OrderDetailCont
         <div className={`${styles.infoRow} ${styles.totalRow}`}>
           <span className={styles.label}>合计</span>
           <span className={`${styles.value} ${styles.totalValue}`}>¥{(baseAmount + vasTotal + order.extraAmount).toFixed(2)}</span>
-        </div>
-      </div>
-
-      {/* 联系管理员 */}
-      <div className={styles.infoCard}>
-        <h3 className={styles.cardTitle}>联系管理员</h3>
-        <div className={styles.contactInfo}>
-          <span>请联系管理员处理</span>
         </div>
       </div>
 

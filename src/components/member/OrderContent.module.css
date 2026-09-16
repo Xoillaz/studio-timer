@@ -22,20 +22,31 @@
   border-bottom: 1px solid var(--color-border-light);
 }
 
+/* 信息行 - 紧凑布局 */
 .infoRow {
   display: flex;
   justify-content: space-between;
-  padding: var(--space-xs) 0;
+  align-items: center;
+  padding: 6px 0;
   font-size: var(--font-sm);
+  gap: var(--space-sm);
 }
 
 .infoRow .label {
   color: var(--color-text-secondary);
+  flex-shrink: 0;
 }
 
 .infoRow .value {
   color: var(--color-text);
   font-weight: 500;
+  text-align: right;
+  word-break: break-all;
+}
+
+/* 费用金额使用等宽字体 */
+.infoRow .value:not(.totalValue) {
+  font-variant-numeric: tabular-nums;
 }
 
 .totalRow {
@@ -62,6 +73,51 @@
   color: var(--color-danger);
   font-size: var(--font-sm);
   margin: 0;
+}
+
+/* 增值服务列表 */
+.vasList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vasItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-sm);
+}
+
+.vasItem .label {
+  color: var(--color-text);
+}
+
+.vasItem .value {
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 增值服务分组分隔线 */
+.vasDivider {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  margin-top: 4px;
+}
+
+.vasDivider::before,
+.vasDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-light);
+}
+
+.vasDivider span {
+  padding: 0 var(--space-sm);
+  font-size: var(--font-xs);
+  color: var(--color-text-tertiary);
 }
 
 /* 状态内容 - 时间列表 */
