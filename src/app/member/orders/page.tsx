@@ -17,6 +17,7 @@ interface Order {
   exitTime: string | null;
   durationMinutes: number;
   baseAmount: number;
+  vasAmount: number;
   finalAmount: number;
 }
 
@@ -118,12 +119,12 @@ export default function OrdersPage() {
                 </div>
                 <div className={styles.cardFooter}>
                   <span className={styles.duration}>
-                    {order.durationMinutes > 0 
+                    {order.durationMinutes > 0
                       ? `${Math.floor(order.durationMinutes / 60)}小时${order.durationMinutes % 60}分钟`
                       : '未开始'}
                   </span>
                   <span className={styles.amount}>
-                    ¥{order.finalAmount.toFixed(2)}
+                    ¥{(order.baseAmount + order.vasAmount).toFixed(2)}
                   </span>
                 </div>
               </div>

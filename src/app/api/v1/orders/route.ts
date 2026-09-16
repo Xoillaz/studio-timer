@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
           venue: {
             select: { name: true },
           },
+          orderVasServices: true,
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
         exitTime: order.exitTime?.toISOString() || null,
         durationMinutes: order.durationMinutes,
         baseAmount: order.baseAmount,
+        vasAmount: order.orderVasServices.reduce((sum, ov) => sum + ov.subtotal, 0),
         finalAmount: order.finalAmount,
       })),
       total,

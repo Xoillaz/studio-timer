@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
       include: {
         member: { select: { name: true, phone: true } },
         venue: true,
+        orderVasServices: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -35,6 +36,8 @@ export async function GET(request: NextRequest) {
       memberName: order.member.name,
       memberPhone: order.member.phone,
       venueName: order.venue.name,
+      baseAmount: order.baseAmount,
+      vasAmount: order.orderVasServices.reduce((sum, ov) => sum + ov.subtotal, 0),
       finalAmount: order.finalAmount,
       createdAt: order.createdAt.toISOString(),
     }));

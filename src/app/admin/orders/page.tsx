@@ -11,6 +11,8 @@ interface Order {
   memberName: string;
   memberPhone: string;
   venueName: string;
+  baseAmount: number;
+  vasAmount: number;
   finalAmount: number;
   createdAt: string;
 }
@@ -75,7 +77,7 @@ export default function OrdersPage() {
               <div className={styles.name}>{order.orderNo}</div>
               <div className={styles.info}>会员: {order.memberName} ({order.memberPhone})</div>
               <div className={styles.info}>场地: {order.venueName}</div>
-              <div className={styles.info}>金额: ¥{order.finalAmount.toFixed(2)}</div>
+              <div className={styles.info}>金额: ¥{(order.baseAmount + order.vasAmount).toFixed(2)}</div>
               <div className={styles.info}>时间: {new Date(order.createdAt).toLocaleString()}</div>
             </div>
             <div className={styles.cardFooter}>
