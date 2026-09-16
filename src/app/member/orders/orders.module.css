@@ -57,6 +57,7 @@
   flex-direction: column;
   gap: var(--space-md);
   padding-bottom: calc(var(--space-xl) + env(safe-area-inset-bottom));
+  min-height: 100%;
 }
 
 /* 订单卡片 */
