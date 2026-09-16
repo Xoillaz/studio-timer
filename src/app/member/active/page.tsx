@@ -22,7 +22,7 @@ interface EquipmentItem {
 function ActivePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { token, isLoading: authLoading, checkActiveOrder } = useAuth();
+  const { token, isLoading: authLoading, checkActiveOrder, refreshMember } = useAuth();
   const orderId = searchParams.get('orderId');
   
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -292,6 +292,8 @@ function ActivePageContent() {
       if (data.code === 0) {
         setShowEndModal(false);
         checkActiveOrder();
+        // 刷新余额
+        refreshMember();
         router.push('/member');
       } else if (data.code === 1001 && data.data?.required) {
         // 余额不足

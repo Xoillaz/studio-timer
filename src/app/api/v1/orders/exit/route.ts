@@ -80,15 +80,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // 更新订单状态为待审核
+    // 更新订单状态为已完成（用户结束计时直接扣款完成）
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
-        status: 'pending_exit',
+        status: 'completed',
         exitTime,
         durationMinutes,
         baseAmount,
-        finalAmount: baseAmount + order.extraAmount,
+        finalAmount: totalAmount,
       },
     });
 
