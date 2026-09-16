@@ -215,7 +215,7 @@ function ActivePageContent() {
     0
   );
 
-  const totalEstimate = calculateCurrentFee() + currentServiceFee + fixedServiceFee + (order?.equipmentTotal || 0) + (order?.vasServiceTotal || 0);
+  const totalEstimate = calculateCurrentFee() + currentServiceFee + (order?.vasServiceTotal || 0) + (order?.equipmentTotal || 0);
 
   // 下单增值服务
   const handleOrderVas = async () => {
